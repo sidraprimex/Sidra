@@ -27,7 +27,7 @@ export function AuthShell({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(200,169,106,0.18),transparent_30%),radial-gradient(circle_at_88%_78%,rgba(239,227,203,0.08),transparent_34%)]" />
       <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-white/[0.06] lg:block" />
 
-      <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col px-5 pb-6 pt-14 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         <header className="flex items-center justify-between gap-4">
           <Link
             href="/"
