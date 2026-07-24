@@ -16,3 +16,11 @@ button, input, textarea, select { font: inherit; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ivory-100);
+  box-shadow: 0 0 0 1000px rgba(17, 17, 17, 0.96) inset;
+  transition: background-color 9999s ease-out 0s;
+}

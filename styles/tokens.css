@@ -6,6 +6,22 @@
   No new accent colour may be introduced without a Founder-approved design-system revision.
 */
 :root {
+  --color-black-950-rgb: 11 11 11;
+  --color-black-900-rgb: 17 17 17;
+  --color-charcoal-800-rgb: 28 27 25;
+  --color-ivory-100-rgb: 247 244 239;
+  --color-ivory-50-rgb: 251 250 247;
+  --color-gold-500-rgb: 200 169 106;
+  --color-gold-600-rgb: 176 141 79;
+  --color-gold-100-rgb: 239 227 203;
+  --color-gray-700-rgb: 74 71 68;
+  --color-gray-500-rgb: 138 133 126;
+  --color-gray-300-rgb: 212 207 199;
+  --color-gray-100-rgb: 237 234 228;
+  --color-success-rgb: 62 107 82;
+  --color-error-rgb: 140 59 52;
+  --color-warning-rgb: 166 124 46;
+  --color-info-rgb: 60 90 110;
   --color-black-950: #0b0b0b;
   --color-black-900: #111111;
   --color-charcoal-800: #1c1b19;

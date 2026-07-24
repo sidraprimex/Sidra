@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
-import { Navigation } from "@/components/layout/Navigation";
-import { Footer } from "@/components/layout/Footer";
-import { OpeningCinematic } from "@/components/motion/OpeningCinematic";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { SiteFrame } from "@/components/layout/SiteFrame";
 
 export const metadata: Metadata = {
   title: { default: "Sidra", template: "%s · Sidra" },
@@ -23,10 +22,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <OpeningCinematic />
-        <Navigation />
-        {children}
-        <Footer />
+        <AuthProvider>
+          <SiteFrame>{children}</SiteFrame>
+        </AuthProvider>
       </body>
     </html>
   );

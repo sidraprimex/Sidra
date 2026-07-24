@@ -1,3 +1,11 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
-export default defineConfig({ test:{ environment:"node", include:["**/*.test.ts"] }, resolve:{ alias:{ "@":path.resolve(__dirname,".") } } });
+
+export default defineConfig({
+  test: {
+    environment: "node",
+    include: ["utils/**/*.test.ts"],
+    exclude: ["tests/rules/**", "firebase/functions/**"],
+  },
+  resolve: { alias: { "@": path.resolve(__dirname, ".") } },
+});

@@ -11,4 +11,10 @@ coverage/
 firebase-debug.log*
 .DS_Store
 *.log
+
+firebase/functions/lib/
+firebase/functions/node_modules/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
 tsconfig.tsbuildinfo

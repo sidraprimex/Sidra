@@ -1,0 +1,12 @@
+{
+  "name": "sidra-rules-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "vitest run" },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "12.16.0",
+    "vitest": "^3.2.4"
+  },
+  "devDependencies": { "@types/node": "^22.18.0", "typescript": "^5.9.2" }
+}

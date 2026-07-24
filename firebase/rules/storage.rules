@@ -1,6 +1,19 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function imageUpload() {
+      return request.resource != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /users/{uid}/profile/{fileName} {
+      allow read: if true;
+      allow write: if owner(uid) && imageUpload();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
