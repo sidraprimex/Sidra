@@ -1,0 +1,13 @@
+# Phase 0 acceptance record
+- [x] Next.js App Router, strict TypeScript and Tailwind are configured.
+- [x] Blueprint colour, typography, spacing, radius, shadow and motion tokens are centralized.
+- [x] Button has five variants plus loading/disabled/focus behavior.
+- [x] Base Card, loading, empty and calm error components exist.
+- [x] Navigation transitions from transparent to solid after scroll.
+- [x] Mobile navigation is keyboard/touch accessible and locks body scroll only while open.
+- [x] Opening has guest and authenticated-name-ready variants, 3.5s cap, 800ms skip lock, returning-session 400ms route and reduced-motion fallback.
+- [x] Firebase initializes once through environment variables and does not block a build when local values are absent.
+- [x] Firestore and Storage deny-by-default rules are included for the foundation.
+- [x] GitHub quality workflow executes typecheck, lint, tests and build.
+- [ ] Real authenticated-name test requires Phase 1 authentication wiring and two test accounts.
+- [ ] Hosting-dashboard staging/production approval behavior must be verified after repository connection.

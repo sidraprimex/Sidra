@@ -1,0 +1,60 @@
+/*
+  SIDRA 60–30–10 RULE
+  60%: black-900 / black-950 foundations
+  30%: ivory-100 / ivory-50 surfaces
+  10%: gold-500 / gold-600 / gold-100 accents
+  No new accent colour may be introduced without a Founder-approved design-system revision.
+*/
+:root {
+  --color-black-950: #0b0b0b;
+  --color-black-900: #111111;
+  --color-charcoal-800: #1c1b19;
+  --color-ivory-100: #f7f4ef;
+  --color-ivory-50: #fbfaf7;
+  --color-gold-500: #c8a96a;
+  --color-gold-600: #b08d4f;
+  --color-gold-100: #efe3cb;
+  --color-gray-700: #4a4744;
+  --color-gray-500: #8a857e;
+  --color-gray-300: #d4cfc7;
+  --color-gray-100: #edeae4;
+  --color-success: #3e6b52;
+  --color-error: #8c3b34;
+  --color-warning: #a67c2e;
+  --color-info: #3c5a6e;
+  --font-display: "Cormorant Garamond Variable", "Cormorant Garamond", serif;
+  --font-body: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-hero: clamp(2.5rem, 5vw, 4.5rem);
+  --text-h1: clamp(2rem, 3.5vw, 3rem);
+  --text-h2: 1.75rem;
+  --text-h3: 1.375rem;
+  --text-body-lg: 1.125rem;
+  --text-body: 1rem;
+  --text-caption: 0.875rem;
+  --text-micro: 0.75rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 2.5rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 5rem;
+  --space-10: 6rem;
+  --space-11: 8rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 1.75rem;
+  --radius-full: 999px;
+  --shadow-card: 0 2px 12px rgba(17, 17, 17, 0.06);
+  --shadow-hover: 0 8px 24px rgba(17, 17, 17, 0.1);
+  --shadow-modal: 0 16px 48px rgba(17, 17, 17, 0.18);
+  --shadow-gold-glow: 0 0 24px rgba(200, 169, 106, 0.25);
+  --ease-luxury: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-base: 280ms;
+  --duration-slow: 600ms;
+  --duration-cinematic: 1200ms;
+}
