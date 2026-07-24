@@ -2,20 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function ownUser(uid) { return signedIn() && request.auth.uid == uid; }
+    function uid() { return signedIn() ? request.auth.uid : null; }
     function role() { return signedIn() ? request.auth.token.role : null; }
-    function founder() { return role() in ['founder', 'superAdmin']; }
+    function studioId() { return signedIn() ? request.auth.token.studioId : null; }
     function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function founder() { return role() in ['founder', 'superAdmin']; }
+    function supportAdmin() { return role() in ['support', 'founder', 'superAdmin']; }
+    function contentAdmin() { return role() in ['contentManager', 'founder', 'superAdmin']; }
+    function financeAdmin() { return role() in ['financeManager', 'founder', 'superAdmin']; }
+    function marketingAdmin() { return role() in ['marketingManager', 'contentManager', 'founder', 'superAdmin']; }
+    function anyAdmin() { return role() in ['support', 'contentManager', 'financeManager', 'marketingManager', 'founder', 'superAdmin']; }
+    function ownUser(userId) { return signedIn() && uid() == userId; }
+    function ownStudio(value) { return signedIn() && studioId() != null && studioId() == value; }
+    function changedOnly(fields) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields); }
+    function createdOnly(fields) { return request.resource.data.keys().hasOnly(fields); }
+    function validText(value, min, max) { return value is string && value.size() >= min && value.size() <= max; }
 
-    match /cms/{documentId} {
-      allow read: if true;
-      allow write: if founder() || role() == 'contentManager';
-    }
-
-    match /users/{uid} {
-      allow read: if ownUser(uid) || founder();
-      allow create: if ownUser(uid)
-        && request.resource.data.uid == request.auth.uid
+    match /users/{userId} {
+      allow read: if ownUser(userId) || founder();
+      allow create: if ownUser(userId)
+        && request.resource.data.uid == uid()
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.emailVerified == request.auth.token.email_verified
         && request.resource.data.role == 'customer'
@@ -25,8 +31,8 @@ service cloud.firestore {
         && request.resource.data.orderCount == 0
         && request.resource.data.loyaltyPoints == 0;
       allow update: if founder() || (
-        ownUser(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        ownUser(userId)
+        && changedOnly([
           'fullName', 'phone', 'profilePhoto', 'preferredLanguage',
           'notificationPreferences', 'email', 'emailVerified',
           'lastLoginAt', 'updatedAt'
@@ -40,17 +46,250 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /wishlists/{uid} {
-      allow read: if ownUser(uid);
-      allow create, update: if ownUser(uid) && verified();
-      allow delete: if ownUser(uid);
+    match /studios/{documentId} {
+      allow read: if resource.data.active == true || ownStudio(documentId) || anyAdmin();
+      allow create: if false;
+      allow update: if founder() || (
+        ownStudio(documentId)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.studioId == resource.data.studioId
+        && request.resource.data.slug == resource.data.slug
+        && request.resource.data.subscriptionTier == resource.data.subscriptionTier
+        && request.resource.data.verificationBadge == resource.data.verificationBadge
+        && request.resource.data.featured == resource.data.featured
+        && request.resource.data.active == resource.data.active
+        && changedOnly(['name', 'description', 'logoUrl', 'bannerUrl', 'galleryUrls', 'category', 'seo', 'policies', 'updatedAt'])
+      );
+      allow delete: if false;
     }
 
-    match /carts/{uid} {
-      allow read: if ownUser(uid);
-      allow create, update: if ownUser(uid) && verified();
-      allow delete: if ownUser(uid);
+    match /products/{productId} {
+      allow read: if resource.data.status == 'published' || ownStudio(resource.data.studioId) || anyAdmin();
+      allow create: if verified()
+        && role() == 'seller'
+        && request.resource.data.productId == productId
+        && ownStudio(request.resource.data.studioId)
+        && request.resource.data.status in ['draft', 'pendingReview'];
+      allow update: if founder() || contentAdmin() || (
+        verified()
+        && role() == 'seller'
+        && ownStudio(resource.data.studioId)
+        && request.resource.data.studioId == resource.data.studioId
+        && request.resource.data.productId == resource.data.productId
+        && (
+          request.resource.data.status in ['draft', 'pendingReview', 'hidden', 'archived']
+          || (resource.data.status == 'published' && request.resource.data.status == 'published')
+        )
+        && changedOnly([
+          'name', 'slug', 'shortDescription', 'description', 'story', 'category',
+          'collectionIds', 'price', 'salePrice', 'sku', 'inventoryCount',
+          'inventoryMode', 'images', 'videos', 'variants', 'materials',
+          'dimensions', 'weight', 'productionTimeDays', 'shippingTimeDays',
+          'status', 'seo', 'updatedAt'
+        ])
+      );
+      allow delete: if false;
     }
+
+    match /categories/{categoryId} {
+      allow read: if resource.data.active == true || contentAdmin();
+      allow create, update: if contentAdmin();
+      allow delete: if founder();
+    }
+
+    match /collections/{collectionId} {
+      allow read: if resource.data.active == true || contentAdmin();
+      allow create, update: if contentAdmin();
+      allow delete: if founder();
+    }
+
+    match /orders/{orderId} {
+      allow read: if signedIn() && (
+        resource.data.customerId == uid()
+        || ownStudio(resource.data.studioId)
+        || supportAdmin()
+        || financeAdmin()
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /customOrders/{requestId} {
+      allow read: if signedIn() && (
+        resource.data.customerId == uid()
+        || ownStudio(resource.data.assignedStudioId)
+        || supportAdmin()
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if resource.data.moderationStatus == 'visible' || ownStudio(resource.data.studioId) || supportAdmin();
+      allow create: if false;
+      allow update: if supportAdmin() || (
+        signedIn()
+        && resource.data.customerId == uid()
+        && resource.data.verifiedPurchase == true
+        && request.time < resource.data.editableUntil
+        && request.resource.data.verifiedPurchase == resource.data.verifiedPurchase
+        && request.resource.data.moderationStatus == resource.data.moderationStatus
+        && request.resource.data.orderId == resource.data.orderId
+        && request.resource.data.productId == resource.data.productId
+        && request.resource.data.studioId == resource.data.studioId
+        && changedOnly(['rating', 'title', 'body', 'imageUrls'])
+      );
+      allow delete: if false;
+    }
+
+    match /followers/{followerId} {
+      allow read: if signedIn() && (resource.data.customerId == uid() || ownStudio(resource.data.studioId) || anyAdmin());
+      allow create: if verified()
+        && request.resource.data.customerId == uid()
+        && request.resource.data.followerId == followerId;
+      allow update: if false;
+      allow delete: if signedIn() && (resource.data.customerId == uid() || founder());
+    }
+
+    match /wishlists/{userId} {
+      allow read: if ownUser(userId);
+      allow create, update: if ownUser(userId) && verified() && request.resource.data.uid == uid();
+      allow delete: if ownUser(userId);
+    }
+
+    match /carts/{userId} {
+      allow read: if ownUser(userId);
+      allow create, update: if ownUser(userId) && verified() && request.resource.data.uid == uid();
+      allow delete: if ownUser(userId);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && (resource.data.recipientUid == uid() || supportAdmin());
+      allow create: if false;
+      allow update: if signedIn()
+        && resource.data.recipientUid == uid()
+        && request.resource.data.recipientUid == resource.data.recipientUid
+        && changedOnly(['read', 'readAt']);
+      allow delete: if false;
+    }
+
+    match /messages/{messageId} {
+      allow read: if signedIn() && (
+        resource.data.senderUid == uid()
+        || uid() in resource.data.recipientUids
+        || supportAdmin()
+      );
+      allow create: if verified()
+        && request.resource.data.senderUid == uid()
+        && request.resource.data.recipientUids is list
+        && request.resource.data.recipientUids.size() > 0
+        && request.resource.data.contextType in ['productInquiry', 'customOrder', 'supportTicket']
+        && validText(request.resource.data.body, 1, 5000);
+      allow update: if signedIn()
+        && resource.data.senderUid == uid()
+        && request.resource.data.senderUid == resource.data.senderUid
+        && changedOnly(['body', 'editedAt', 'deleted']);
+      allow delete: if false;
+    }
+
+    match /supportTickets/{ticketId} {
+      allow read: if signedIn() && (
+        resource.data.customerId == uid()
+        || ownStudio(resource.data.studioId)
+        || supportAdmin()
+      );
+      allow create: if verified()
+        && request.resource.data.ticketId == ticketId
+        && (request.resource.data.customerId == uid() || ownStudio(request.resource.data.studioId));
+      allow update: if supportAdmin() || (
+        signedIn()
+        && resource.data.customerId == uid()
+        && request.resource.data.customerId == resource.data.customerId
+        && changedOnly(['description', 'attachmentUrls', 'satisfactionRating', 'updatedAt'])
+      );
+      allow delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if financeAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /payouts/{payoutId} {
+      allow read: if financeAdmin() || ownStudio(resource.data.studioId);
+      allow create, update: if financeAdmin();
+      allow delete: if false;
+    }
+
+    match /coupons/{couponId} {
+      allow read: if signedIn() || marketingAdmin();
+      allow create, update: if marketingAdmin();
+      allow delete: if founder();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if resource.data.status == 'active' || marketingAdmin();
+      allow create, update: if marketingAdmin();
+      allow delete: if founder();
+    }
+
+    match /journal/{articleId} {
+      allow read: if resource.data.status == 'published' || contentAdmin();
+      allow create, update: if contentAdmin();
+      allow delete: if founder();
+    }
+
+    match /media/{mediaId} {
+      allow read: if true;
+      allow create: if verified() && request.resource.data.createdBy == uid();
+      allow update: if signedIn() && (resource.data.createdBy == uid() || contentAdmin());
+      allow delete: if signedIn() && (resource.data.createdBy == uid() || founder());
+    }
+
+    match /analytics/{analyticsId} {
+      allow read: if anyAdmin() || ownStudio(resource.data.subjectId);
+      allow create, update, delete: if false;
+    }
+
+    match /cms/{documentId} {
+      allow read: if true;
+      allow create, update: if contentAdmin();
+      allow delete: if founder();
+    }
+
+    match /settings/{documentId} {
+      allow read: if signedIn();
+      allow create, update: if founder();
+      allow delete: if false;
+    }
+
+    match /automationRules/{ruleId} {
+      allow read, create, update: if founder();
+      allow delete: if founder();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if anyAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /corporateLeads/{leadId} {
+      allow create: if request.resource.data.leadId == leadId
+        && validText(request.resource.data.companyName, 2, 160)
+        && validText(request.resource.data.contactName, 2, 120)
+        && validText(request.resource.data.email, 3, 320);
+      allow read, update: if marketingAdmin() || supportAdmin();
+      allow delete: if founder();
+    }
+
+    match /seo/{seoId} {
+      allow read: if true;
+      allow create, update: if marketingAdmin();
+      allow delete: if founder();
+    }
+
+    match /affiliates/{documentId} { allow read, write: if false; }
+    match /giftCards/{documentId} { allow read, write: if false; }
+    match /loyaltyLedger/{documentId} { allow read, write: if false; }
+    match /subscriptionsBilling/{documentId} { allow read, write: if false; }
 
     match /{document=**} {
       allow read, write: if false;

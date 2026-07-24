@@ -1,4 +1,4 @@
-import type { Timestamp } from "firebase/firestore";
+import type { DateTimeValue } from "@/types/firestore";
 
 export const SIDRA_ROLES = [
   "visitor",
@@ -16,33 +16,33 @@ export type SidraRole = (typeof SIDRA_ROLES)[number];
 export type AccountStatus = "active" | "suspended" | "deleted";
 
 export interface NotificationPreferences {
-  transactional: boolean;
-  studioUpdates: boolean;
-  editorial: boolean;
-  marketing: boolean;
+  readonly transactional: boolean;
+  readonly studioUpdates: boolean;
+  readonly editorial: boolean;
+  readonly marketing: boolean;
 }
 
 export interface UserProfile {
-  uid: string;
-  fullName: string;
-  email: string;
-  phone: string | null;
-  role: SidraRole;
-  studioId: string | null;
-  profilePhoto: string | null;
-  status: AccountStatus;
-  emailVerified: boolean;
-  preferredLanguage: "en";
-  notificationPreferences: NotificationPreferences;
-  wishlistCount: number;
-  orderCount: number;
-  loyaltyPoints: number;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
-  lastLoginAt: Timestamp | null;
+  readonly uid: string;
+  readonly fullName: string;
+  readonly email: string;
+  readonly phone: string | null;
+  readonly role: SidraRole;
+  readonly studioId: string | null;
+  readonly profilePhoto: string | null;
+  readonly status: AccountStatus;
+  readonly emailVerified: boolean;
+  readonly preferredLanguage: "en";
+  readonly notificationPreferences: NotificationPreferences;
+  readonly wishlistCount: number;
+  readonly orderCount: number;
+  readonly loyaltyPoints: number;
+  readonly createdAt: DateTimeValue;
+  readonly updatedAt: DateTimeValue;
+  readonly lastLoginAt: DateTimeValue;
 }
 
 export interface AuthClaims {
-  role: SidraRole;
-  studioId?: string;
+  readonly role: SidraRole;
+  readonly studioId?: string;
 }

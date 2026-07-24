@@ -2,6 +2,7 @@ import {
   browserLocalPersistence,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  onIdTokenChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
@@ -12,19 +13,14 @@ import {
   type User,
   type UserCredential,
 } from "firebase/auth";
-import { getFirebaseServices } from "@/lib/firebaseClient";
+import { getFirebaseServices, requireFirebaseServices } from "@/services/firebaseClient";
 import { ensureUserProfile, syncEmailVerification } from "@/services/userService";
 
-function requireAuth() {
-  const services = getFirebaseServices();
-  if (!services) {
-    throw new Error("Sidra is not connected to Firebase. Add the required environment variables.");
-  }
-  return services.auth;
-}
+export type FirebaseUser = User;
+export type AuthUnsubscribe = () => void;
 
 async function prepareAuth() {
-  const auth = requireAuth();
+  const auth = requireFirebaseServices().auth;
   await setPersistence(auth, browserLocalPersistence);
   return auth;
 }
@@ -34,10 +30,26 @@ async function provision(credential: UserCredential, fullName?: string): Promise
   return credential.user;
 }
 
+export function subscribeToAuthState(
+  callback: (user: FirebaseUser | null) => void,
+  onError?: (error: Error) => void
+): AuthUnsubscribe {
+  const services = getFirebaseServices();
+  if (!services) {
+    callback(null);
+    return () => undefined;
+  }
+  return onIdTokenChanged(
+    services.auth,
+    callback,
+    (error: Error) => onError?.(error instanceof Error ? error : new Error("Authentication state failed."))
+  );
+}
+
 export async function registerWithEmail(params: {
-  fullName: string;
-  email: string;
-  password: string;
+  readonly fullName: string;
+  readonly email: string;
+  readonly password: string;
 }): Promise<User> {
   const auth = await prepareAuth();
   const credential = await createUserWithEmailAndPassword(auth, params.email.trim(), params.password);
@@ -64,8 +76,7 @@ export async function loginWithGoogle(): Promise<User> {
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  const auth = await prepareAuth();
-  await sendPasswordResetEmail(auth, email.trim());
+  await sendPasswordResetEmail(await prepareAuth(), email.trim());
 }
 
 export async function resendVerificationEmail(user: User): Promise<void> {
@@ -79,5 +90,5 @@ export async function refreshIdentity(user: User): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  await signOut(requireAuth());
+  await signOut(requireFirebaseServices().auth);
 }

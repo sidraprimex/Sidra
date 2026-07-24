@@ -1,30 +1,30 @@
 "use client";
 
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { onIdTokenChanged, type User } from "firebase/auth";
-import { getFirebaseServices } from "@/lib/firebaseClient";
+import { getFirebaseServices } from "@/services/firebaseClient";
+import { subscribeToAuthState, type FirebaseUser } from "@/services/authService";
 import { ensureUserProfile, getUserProfile } from "@/services/userService";
 import type { AuthClaims, SidraRole, UserProfile } from "@/types/auth";
 
 export interface AuthContextValue {
-  user: User | null;
-  profile: UserProfile | null;
-  claims: AuthClaims | null;
-  loading: boolean;
-  firebaseReady: boolean;
-  refresh: () => Promise<void>;
+  readonly user: FirebaseUser | null;
+  readonly profile: UserProfile | null;
+  readonly claims: AuthClaims | null;
+  readonly loading: boolean;
+  readonly firebaseReady: boolean;
+  readonly refresh: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const services = getFirebaseServices();
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { readonly children: ReactNode }) {
+  const firebaseReady = Boolean(getFirebaseServices());
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [claims, setClaims] = useState<AuthClaims | null>(null);
-  const [loading, setLoading] = useState(Boolean(services));
+  const [loading, setLoading] = useState(firebaseReady);
 
-  const hydrate = useCallback(async (currentUser: User | null, force = false) => {
+  const hydrate = useCallback(async (currentUser: FirebaseUser | null, force = false) => {
     setUser(currentUser);
     if (!currentUser) {
       setProfile(null);
@@ -50,22 +50,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!services) {
+    if (!firebaseReady) {
       setLoading(false);
       return;
     }
-    return onIdTokenChanged(services.auth, (currentUser) => {
-      void hydrate(currentUser).catch(() => setLoading(false));
-    });
-  }, [hydrate, services]);
+    return subscribeToAuthState(
+      (currentUser) => void hydrate(currentUser).catch(() => setLoading(false)),
+      () => setLoading(false)
+    );
+  }, [firebaseReady, hydrate]);
 
   const refresh = useCallback(async () => {
     await hydrate(user, true);
   }, [hydrate, user]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, profile, claims, loading, firebaseReady: Boolean(services), refresh }),
-    [claims, loading, profile, refresh, services, user]
+    () => ({ user, profile, claims, loading, firebaseReady, refresh }),
+    [claims, firebaseReady, loading, profile, refresh, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

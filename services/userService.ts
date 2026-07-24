@@ -5,9 +5,10 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  type Transaction,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
-import { getFirebaseServices } from "@/lib/firebaseClient";
+import { getFirebaseServices } from "@/services/firebaseClient";
 import type { UserProfile } from "@/types/auth";
 
 const USERS_COLLECTION = "users";
@@ -29,7 +30,7 @@ export async function ensureUserProfile(user: User, fullName?: string): Promise<
   const db = requireDatabase();
   const userRef = doc(db, USERS_COLLECTION, user.uid);
 
-  await runTransaction(db, async (transaction) => {
+  await runTransaction(db, async (transaction: Transaction) => {
     const snapshot = await transaction.get(userRef);
     if (!snapshot.exists()) {
       transaction.set(userRef, {

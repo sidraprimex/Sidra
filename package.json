@@ -17,7 +17,9 @@
     "test:rules": "firebase emulators:exec --only firestore \"npm test --prefix tests/rules\"",
     "functions:install": "npm install --prefix firebase/functions",
     "functions:build": "npm run build --prefix firebase/functions",
-    "rules:install": "npm install --prefix tests/rules"
+    "rules:install": "npm install --prefix tests/rules",
+    "functions:check": "npm run functions:install && npm run functions:build",
+    "phase2:verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.2.8",

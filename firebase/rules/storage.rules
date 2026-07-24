@@ -2,16 +2,92 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null; }
-    function owner(uid) { return signedIn() && request.auth.uid == uid; }
-    function imageUpload() {
+    function role() { return signedIn() ? request.auth.token.role : null; }
+    function uid() { return signedIn() ? request.auth.uid : null; }
+    function studioId() { return signedIn() ? request.auth.token.studioId : null; }
+    function founder() { return role() in ['founder', 'superAdmin']; }
+    function contentAdmin() { return role() in ['contentManager', 'marketingManager', 'founder', 'superAdmin']; }
+    function supportAdmin() { return role() in ['support', 'founder', 'superAdmin']; }
+    function ticket(ticketId) { return firestore.get(/databases/(default)/documents/supportTickets/$(ticketId)).data; }
+    function order(orderId) { return firestore.get(/databases/(default)/documents/orders/$(orderId)).data; }
+    function canAccessTicket(ticketId) {
+      return signedIn() && (
+        ticket(ticketId).customerId == uid()
+        || ticket(ticketId).studioId == studioId()
+        || supportAdmin()
+      );
+    }
+    function canAccessInvoice(orderId) {
+      return signedIn() && (
+        order(orderId).customerId == uid()
+        || order(orderId).studioId == studioId()
+        || role() in ['financeManager', 'support', 'founder', 'superAdmin']
+      );
+    }
+    function ownStudio(value) { return signedIn() && studioId() != null && studioId() == value; }
+    function validImage(maxMb) {
       return request.resource != null
-        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.size <= maxMb * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+    function validProductMedia() {
+      return request.resource != null
+        && request.resource.size <= 100 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+    }
+    function validAttachment() {
+      return request.resource != null
+        && request.resource.size <= 20 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/pdf'
+        );
+    }
 
-    match /users/{uid}/profile/{fileName} {
+    match /studios/{ownerStudioId}/logo/{fileName} {
       allow read: if true;
-      allow write: if owner(uid) && imageUpload();
+      allow write: if (ownStudio(ownerStudioId) || founder()) && validImage(10);
+    }
+    match /studios/{ownerStudioId}/banner/{fileName} {
+      allow read: if true;
+      allow write: if (ownStudio(ownerStudioId) || founder()) && validImage(15);
+    }
+    match /studios/{ownerStudioId}/gallery/{fileName} {
+      allow read: if true;
+      allow write: if (ownStudio(ownerStudioId) || founder()) && validImage(15);
+    }
+    match /studios/{ownerStudioId}/products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if (ownStudio(ownerStudioId) || founder()) && validProductMedia();
+    }
+
+    match /users/{ownerUid}/profile/{fileName} {
+      allow read: if true;
+      allow write: if signedIn() && uid() == ownerUid && validImage(10);
+    }
+
+    match /journal/{articleId}/{fileName} {
+      allow read: if true;
+      allow write: if contentAdmin() && validProductMedia();
+    }
+
+    match /campaigns/{campaignId}/{fileName} {
+      allow read: if true;
+      allow write: if contentAdmin() && validProductMedia();
+    }
+
+    match /support-tickets/{ticketId}/attachments/{fileName} {
+      allow read: if canAccessTicket(ticketId);
+      allow write: if canAccessTicket(ticketId) && validAttachment();
+    }
+
+    match /invoices/{orderId}/{fileName} {
+      allow read: if canAccessInvoice(orderId);
+      allow write: if false;
+    }
+
+    match /temp/{ownerUid}/{uploadSessionId}/{fileName} {
+      allow read, write: if signedIn() && uid() == ownerUid && validAttachment();
     }
 
     match /{allPaths=**} {
