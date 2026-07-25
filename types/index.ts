@@ -55,3 +55,4 @@ export type {
   WishlistItem,
 } from "./phase9-customer";
 export type { AdminAuditLog, AdminContentStatus, CommerceSettings, FinanceLedgerEntry, FounderControlCenterSummary, FounderFinanceSummary, PlatformContentEntry } from "./phase10-founder-admin";
+export type { CampaignStatus, CouponDiscountType, CustomerSegment, CustomerSegmentRule, SellerAnalyticsSummary, SellerCampaign, SellerCoupon } from "./phase11-seller-growth";

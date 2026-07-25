@@ -471,4 +471,22 @@ match /adminAuditLogs/{auditId} {
   allow read: if isFounder();
   allow write: if false;
 }
+
+    // PHASE_11_SELLER_GROWTH
+match /sellerAnalyticsSummary/{studioId} {
+  allow read: if isFounder() || (isSeller() && request.auth.token.studioId == studioId);
+  allow write: if false;
+}
+match /sellerCoupons/{couponId} {
+  allow read: if resource.data.active == true || isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
+match /customerSegments/{segmentId} {
+  allow read: if isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
+match /sellerCampaigns/{campaignId} {
+  allow read: if isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
 }

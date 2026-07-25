@@ -25,3 +25,4 @@ export { toggleWishlistProduct, toggleStudioFollow, getCustomerDashboardSummary 
 export { respondToReview } from "./respondToReview";
 export { aggregatePublishedReview } from "./reviewAggregation";
 export { savePlatformContent, saveCommerceSettings, getFounderControlCenterSummary } from "./founderAdmin";
+export { getSellerAnalyticsSummary, saveCustomerSegment, saveSellerCampaign, saveSellerCoupon } from "./sellerGrowth";

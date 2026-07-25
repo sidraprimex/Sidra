@@ -1,0 +1,6 @@
+{
+  "sellerAnalyticsSummary/{studioId}": {"read":"matching seller or founder","write":"trusted server only"},
+  "sellerCoupons/{couponId}": {"write":"seller callable for own Studio","maximumPercentage":90},
+  "customerSegments/{segmentId}": {"write":"seller callable for own Studio"},
+  "sellerCampaigns/{campaignId}": {"write":"seller callable for own Studio","initialStatus":"draft"}
+}

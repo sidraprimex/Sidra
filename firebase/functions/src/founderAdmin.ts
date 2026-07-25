@@ -23,6 +23,7 @@ export const savePlatformContent = onCall(async (request) => {
   const db = getFirestore();
   const id = String(request.data?.contentId ?? `${namespace}.${key}`).replace(/[^a-z0-9._-]/g, "-");
   const ref = db.collection("platformContent").doc(id);
+  const old = await ref.get();
   const batch = db.batch();
   batch.set(ref, { namespace, key, value, description, status, updatedBy: uid, createdAt: old.exists ? old.data()?.createdAt ?? FieldValue.serverTimestamp() : FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   batch.set(db.collection("adminAuditLogs").doc(), { actorId: uid, actorRole: "founder", action: old.exists ? "platformContent.update" : "platformContent.create", entityType: "platformContent", entityId: id, createdAt: FieldValue.serverTimestamp() });
