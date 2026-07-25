@@ -21,3 +21,13 @@ export * from "./canvas-engine";
 export * from "./phase4-taxonomy";
 export * from "./phase5-discovery";
 export * from "./phase6-commerce";
+export type {
+  CustomerTrackingStage,
+  FulfilmentOrder,
+  OrderStatus as Phase7OrderStatus,
+  OrderStatusUpdateInput,
+  OrderTimelineEntry as Phase7OrderTimelineEntry,
+  RefundRequestInput,
+  SellerPayout,
+  ShippingPackage,
+} from "./phase7-orders";

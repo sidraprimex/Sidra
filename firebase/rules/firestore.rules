@@ -404,4 +404,18 @@ match /paymentSessions/{sessionId} {
   allow read: if isAuthenticated() && resource.data.customerId == request.auth.uid;
   allow write: if false;
 }
+
+    // PHASE_7_ORDER_LIFECYCLE
+match /refundRequests/{requestId} {
+  allow read: if isFounder()
+    || (isAuthenticated() && resource.data.customerId == request.auth.uid)
+    || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
+
+match /payouts/{payoutId} {
+  allow read: if isFounder()
+    || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
 }

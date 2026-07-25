@@ -61,3 +61,11 @@ export {
 export * from "./addressBookService";
 export * from "./checkoutService";
 export * from "./orderConfirmationService";
+export {
+  listCustomerOrders as listPhase7CustomerOrders,
+  listStudioOrders as listPhase7StudioOrders,
+  listStudioPayouts as listPhase7StudioPayouts,
+  requestRefund,
+  subscribeOrder,
+  updateOrderStatus,
+} from "./orderLifecycleService";

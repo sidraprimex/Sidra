@@ -1,0 +1,30 @@
+{
+  "orders/{orderId}": {
+    "clientWrites": false,
+    "statusTransitions": "Cloud Function only",
+    "timeline": "immutable append-only",
+    "shippingPackageRequiredAt": "readyToShip"
+  },
+  "refundRequests/{requestId}": {
+    "postProduction": "Founder adjudication",
+    "customOrderEvidenceRequired": true
+  },
+  "payouts/{payoutId}": {
+    "createdAt": "order completion",
+    "status": [
+      "pending",
+      "available",
+      "paid"
+    ],
+    "automaticGatewayPayout": false
+  },
+  "settings/commission": {
+    "modes": [
+      "percentage",
+      "flat",
+      "category",
+      "subscriptionTier"
+    ],
+    "hardcodedRate": false
+  }
+}

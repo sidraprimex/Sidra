@@ -14,3 +14,5 @@ export { moderateProduct } from "./productPublishing";
 export { maintainProductSearchIndex } from "./productSearchIndex";
 export { initiatePayment } from "./initiatePayment";
 export { razorpayWebhook } from "./paymentWebhook";
+export { updateOrderStatus } from "./updateOrderStatus";
+export { requestOrderRefund } from "./requestOrderRefund";
