@@ -27,3 +27,6 @@ export { aggregatePublishedReview } from "./reviewAggregation";
 export { savePlatformContent, saveCommerceSettings, getFounderControlCenterSummary } from "./founderAdmin";
 export { getSellerAnalyticsSummary, saveCustomerSegment, saveSellerCampaign, saveSellerCoupon } from "./sellerGrowth";
 export { createSupportTicket, sendSupportMessage, manageSupportTicket, markAllNotificationsRead } from "./communication";
+export { recordSecuritySignal, reviewSecuritySignal, saveReleaseEvidence, getLaunchReadinessSummary } from "./launchReadiness";
+export { verifyDailyBackupInventory, purgeExpiredSoftDeletedAccounts } from "./backupMaintenance";
+export { monitorPaymentWebhookFailures } from "./healthMonitoring";

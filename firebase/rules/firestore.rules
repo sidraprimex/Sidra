@@ -471,4 +471,31 @@ match /sellerCampaigns/{campaignId} {
   allow read: if isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
   allow write: if false;
 }
+
+    // PHASE_13_HARDENING_AND_LAUNCH
+match /securitySignals/{signalId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+match /releaseEvidence/{evidenceId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+match /releaseBugs/{bugId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+match /backupRuns/{backupRunId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+match /performanceRuns/{runId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+match /loadTestRuns/{runId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+
 }

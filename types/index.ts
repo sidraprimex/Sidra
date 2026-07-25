@@ -57,3 +57,4 @@ export type {
 export type { AdminAuditLog, AdminContentStatus, CommerceSettings, FinanceLedgerEntry, FounderControlCenterSummary, FounderFinanceSummary, PlatformContentEntry } from "./phase10-founder-admin";
 export type { CampaignStatus, CouponDiscountType, CustomerSegment, CustomerSegmentRule, SellerAnalyticsSummary, SellerCampaign, SellerCoupon } from "./phase11-seller-growth";
 export * from "@/types/phase12-communication";
+export * from "./phase13-launch-readiness";

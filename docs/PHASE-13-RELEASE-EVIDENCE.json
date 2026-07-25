@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-07-25T16:07:20.258Z",
+  "environment": "staging",
+  "status": "evidence-required",
+  "gates": [
+    {
+      "evidenceId": "authFlows",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "securityRules",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "customerJourney",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "sellerProvisioning",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "webhookForgery",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "performanceBudgets",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "bugGate",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "recentBackup",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "rbacMatrix",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    },
+    {
+      "evidenceId": "loadTest",
+      "status": "notRun",
+      "method": "Record measured staging evidence before production approval.",
+      "artifactUrl": null
+    }
+  ]
+}

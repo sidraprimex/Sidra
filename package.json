@@ -2,7 +2,7 @@
   "name": "sidra",
   "version": "0.1.0",
   "private": true,
-  "description": "Sidra — a curated luxury digital ecosystem for resin art and handcrafted goods.",
+  "description": "Sidra \u2014 a curated luxury digital ecosystem for resin art and handcrafted goods.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -22,7 +22,11 @@
     "phase2:verify": "npm run typecheck && npm run lint && npm run test && npm run build",
     "test:phase3": "vitest run utils/phase3Architecture.test.ts",
     "functions:test": "npm test --prefix firebase/functions",
-    "test:phase35": "vitest run utils/phase35Architecture.test.ts"
+    "test:phase35": "vitest run utils/phase35Architecture.test.ts",
+    "test:phase13": "vitest run utils/phase13Architecture.test.ts utils/rbacMatrix.test.ts",
+    "release:evidence": "node scripts/release/run-release-gate.mjs",
+    "load:checkout": "node scripts/load/checkout-load-test.mjs",
+    "phase13:verify": "npm run typecheck && npm run lint && npm run test:phase13 && npm run functions:test && npm run build"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.2.8",

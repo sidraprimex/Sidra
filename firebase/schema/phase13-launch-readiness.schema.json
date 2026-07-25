@@ -1,0 +1,12 @@
+{
+  "phase": 13,
+  "name": "Hardening and Launch Readiness",
+  "collections": {
+    "securitySignals": { "writePath": "Cloud Functions only", "autoActionTaken": false, "statuses": ["open", "reviewing", "dismissed", "confirmed"] },
+    "releaseEvidence": { "documentIds": ["authFlows", "securityRules", "customerJourney", "sellerProvisioning", "webhookForgery", "performanceBudgets", "bugGate", "recentBackup", "rbacMatrix", "loadTest"] },
+    "releaseBugs": { "severities": ["low", "medium", "high", "critical"], "statuses": ["open", "investigating", "fixed", "verified", "closed"] },
+    "backupRuns": { "purpose": "Daily source inventory and dated restore-drill evidence" },
+    "performanceRuns": { "budgets": { "homepageLcpMs": 2000, "productStudioLcpMs": 2000, "searchRoundTripMs": 500, "searchSuggestionMs": 150, "dashboardFirstPaintMs": 2000, "animationFps": 60 } },
+    "loadTestRuns": { "concurrencyTargets": [100, 1000, 10000], "requiredIntegrity": ["zeroDuplicateOrders", "zeroCorruptedInventory"] }
+  }
+}
