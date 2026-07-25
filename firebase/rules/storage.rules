@@ -100,4 +100,10 @@ service firebase.storage {
       allow read, write: if false;
     }
   }
+
+    // PHASE_4_PRODUCT_MEDIA
+match /studios/{studioId}/products/{productId}/{allPaths=**} {
+  allow read: if true;
+  allow write: if isSellerForStudio(studioId) || isFounder();
+}
 }

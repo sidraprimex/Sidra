@@ -29,3 +29,16 @@ export * from "./sellerApplicationService";
 export * from "./publicStudioStatusService";
 export * from "./discoveryService";
 export * from "./canvasEngineSettingsService";
+export {
+  archiveProduct,
+  createProductDraft,
+  duplicateProduct,
+  getStudioProduct,
+  submitProduct,
+  updateProductDraft,
+  uploadProductImages,
+  listStudioProducts as listPhase4StudioProducts,
+} from "./productManagementService";
+export * from "./productModerationService";
+export * from "./productApprovalService";
+export * from "./taxonomyManagementService";

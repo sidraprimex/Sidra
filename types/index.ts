@@ -18,3 +18,4 @@ export * from "./seller-application";
 export * from "./studio-provisioning";
 export * from "./discovery";
 export * from "./canvas-engine";
+export * from "./phase4-taxonomy";

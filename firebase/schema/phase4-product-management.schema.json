@@ -1,0 +1,20 @@
+{
+  "collections": {
+    "categories": {
+      "write": "founderOnly",
+      "sellerAssignment": true
+    },
+    "collections": {
+      "write": "founderOnly",
+      "sellerAssignment": true
+    },
+    "settings/productModeration": {
+      "approvalRequired": "boolean"
+    },
+    "products": {
+      "softDelete": "status=archived",
+      "studioScoped": true,
+      "canvasEngineIntegrated": true
+    }
+  }
+}
