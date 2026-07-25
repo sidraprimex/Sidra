@@ -31,3 +31,16 @@ export type {
   SellerPayout,
   ShippingPackage,
 } from "./phase7-orders";
+export type {
+  CustomOrder,
+  CustomOrderBrief,
+  CustomOrderMessage,
+  CustomOrderMessageInput,
+  CustomOrderProof,
+  CustomOrderQuote,
+  CustomOrderStatus,
+  ReviewCustomOrderProofInput,
+  SendCustomQuoteInput,
+  SubmitCustomOrderInput,
+  SubmitCustomOrderProofInput,
+} from "./phase8-custom-orders";

@@ -418,4 +418,19 @@ match /payouts/{payoutId} {
     || (isSeller() && resource.data.studioId == request.auth.token.studioId);
   allow write: if false;
 }
+
+    // PHASE_8_CUSTOM_ORDERS
+match /customOrders/{customOrderId} {
+  allow read: if isFounder()
+    || (isAuthenticated() && resource.data.customerId == request.auth.uid)
+    || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
+
+match /customOrderDisputes/{disputeId} {
+  allow read: if isFounder()
+    || (isAuthenticated() && resource.data.customerId == request.auth.uid)
+    || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
 }

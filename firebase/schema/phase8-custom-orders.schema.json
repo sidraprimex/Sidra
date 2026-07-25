@@ -1,0 +1,24 @@
+{
+  "customOrders/{customOrderId}": {
+    "clientWrites": false,
+    "participants": [
+      "customerId",
+      "studioId",
+      "founder",
+      "support"
+    ],
+    "quote": "single current formal quote",
+    "messages": "append-only via callable",
+    "proofs": "revision-indexed evidence",
+    "linkedOrderId": "created after verified payment webhook"
+  },
+  "paymentSessions/{reference}": {
+    "type": "customOrder",
+    "serverOwned": true,
+    "orderCreation": "verified payment webhook only"
+  },
+  "customOrderDisputes/{id}": {
+    "phase8": "foundation",
+    "founderAdjudication": true
+  }
+}
