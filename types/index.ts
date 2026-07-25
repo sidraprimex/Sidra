@@ -44,3 +44,13 @@ export type {
   SubmitCustomOrderInput,
   SubmitCustomOrderProofInput,
 } from "./phase8-custom-orders";
+export type {
+  CustomerDashboardSummary,
+  CustomerNotification,
+  FollowTargetType,
+  ProductReview,
+  ReviewStatus,
+  ReviewSubmissionInput,
+  StudioFollow,
+  WishlistItem,
+} from "./phase9-customer";

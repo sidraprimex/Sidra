@@ -433,4 +433,24 @@ match /customOrderDisputes/{disputeId} {
     || (isSeller() && resource.data.studioId == request.auth.token.studioId);
   allow write: if false;
 }
+
+    // PHASE_9_CUSTOMER_ENGAGEMENT
+match /reviews/{reviewId} {
+  allow read: if resource.data.status == "published"
+    || isFounder()
+    || (isAuthenticated() && resource.data.customerId == request.auth.uid)
+    || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
+
+match /wishlists/{userId}/items/{productId} {
+  allow read: if isAuthenticated() && request.auth.uid == userId;
+  allow write: if false;
+}
+
+match /studioFollows/{followId} {
+  allow read: if isFounder()
+    || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+  allow write: if false;
+}
 }

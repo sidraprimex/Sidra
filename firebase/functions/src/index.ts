@@ -20,3 +20,7 @@ export { submitCustomOrder } from "./submitCustomOrder";
 export { sendCustomOrderQuote, sendCustomOrderMessage } from "./customOrderActions";
 export { acceptCustomOrderQuote } from "./customOrderPayment";
 export { submitCustomOrderProof, reviewCustomOrderProof } from "./customOrderProofs";
+export { submitProductReview } from "./submitProductReview";
+export { toggleWishlistProduct, toggleStudioFollow, getCustomerDashboardSummary } from "./customerEngagement";
+export { respondToReview } from "./respondToReview";
+export { aggregatePublishedReview } from "./reviewAggregation";

@@ -69,3 +69,15 @@ export {
   subscribeOrder,
   updateOrderStatus,
 } from "./orderLifecycleService";
+export {
+  getCustomerDashboardSummary,
+  isStudioFollowed,
+  listCustomerNotifications,
+  listCustomerWishlist,
+  listPublishedProductReviews,
+  respondToReview,
+  submitProductReview,
+  subscribeCustomerNotifications,
+  toggleStudioFollow,
+  toggleWishlistProduct,
+} from "./customerEngagementService";

@@ -1,0 +1,25 @@
+{
+  "reviews/{reviewId}": {
+    "verifiedPurchase": true,
+    "clientWrite": false,
+    "moderationStatus": [
+      "pending",
+      "published",
+      "rejected",
+      "hidden"
+    ],
+    "onePerOrderProductCustomer": true
+  },
+  "wishlists/{uid}/items/{productId}": {
+    "ownerOnly": true,
+    "serverToggle": true
+  },
+  "studioFollows/{uid_studioId}": {
+    "ownerOnly": true,
+    "targetType": "studio"
+  },
+  "notifications/{notificationId}": {
+    "customerRead": true,
+    "customerWrite": "mark-read only in later communication hardening"
+  }
+}
