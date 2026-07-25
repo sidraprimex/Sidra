@@ -54,3 +54,4 @@ export type {
   StudioFollow,
   WishlistItem,
 } from "./phase9-customer";
+export type { AdminAuditLog, AdminContentStatus, CommerceSettings, FinanceLedgerEntry, FounderControlCenterSummary, FounderFinanceSummary, PlatformContentEntry } from "./phase10-founder-admin";

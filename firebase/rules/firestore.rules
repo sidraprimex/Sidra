@@ -453,4 +453,22 @@ match /studioFollows/{followId} {
     || (isAuthenticated() && resource.data.customerId == request.auth.uid);
   allow write: if false;
 }
+
+    // PHASE_10_FOUNDER_ADMIN
+match /platformContent/{contentId} {
+  allow read: if resource.data.status == "published" || isFounder();
+  allow write: if false;
+}
+match /platformSettings/{settingId} {
+  allow read: if isFounder() || settingId == "commerce";
+  allow write: if false;
+}
+match /financeLedger/{entryId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
+match /adminAuditLogs/{auditId} {
+  allow read: if isFounder();
+  allow write: if false;
+}
 }

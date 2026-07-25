@@ -1,0 +1,23 @@
+{
+  "platformContent/{id}": {
+    "write": "founder callable only",
+    "statuses": [
+      "draft",
+      "published",
+      "archived"
+    ]
+  },
+  "platformSettings/commerce": {
+    "write": "founder callable only",
+    "currency": "INR"
+  },
+  "financeLedger/{id}": {
+    "write": "trusted server only",
+    "moneyUnit": "paise",
+    "appendOnly": true
+  },
+  "adminAuditLogs/{id}": {
+    "read": "founder only",
+    "write": "trusted server only"
+  }
+}

@@ -24,3 +24,4 @@ export { submitProductReview } from "./submitProductReview";
 export { toggleWishlistProduct, toggleStudioFollow, getCustomerDashboardSummary } from "./customerEngagement";
 export { respondToReview } from "./respondToReview";
 export { aggregatePublishedReview } from "./reviewAggregation";
+export { savePlatformContent, saveCommerceSettings, getFounderControlCenterSummary } from "./founderAdmin";
