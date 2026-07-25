@@ -1,0 +1,11 @@
+"use client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { HandwritingStroke } from "@/types/discovery";
+export function HandwritingCanvas({ onRecognize, busy }: { onRecognize: (strokes: HandwritingStroke[], width: number, height: number) => Promise<void>; busy: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null); const [strokes, setStrokes] = useState<HandwritingStroke[]>([]); const active = useRef<HandwritingStroke | null>(null);
+  const redraw = useCallback((next: HandwritingStroke[]) => { const canvas=canvasRef.current; if(!canvas)return; const ctx=canvas.getContext("2d"); if(!ctx)return; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.strokeStyle="rgba(245,222,170,.96)"; ctx.lineWidth=3; ctx.lineCap="round"; ctx.lineJoin="round"; next.forEach(s=>{ if(!s.length)return; ctx.beginPath(); ctx.moveTo(s[0].x,s[0].y); s.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke(); }); },[]);
+  useEffect(()=>redraw(strokes),[redraw,strokes]);
+  const point=(e:React.PointerEvent<HTMLCanvasElement>)=>{const r=e.currentTarget.getBoundingClientRect();return{x:(e.clientX-r.left)*(e.currentTarget.width/r.width),y:(e.clientY-r.top)*(e.currentTarget.height/r.height),t:Date.now()};};
+  return <div className="relative h-full w-full"><canvas ref={canvasRef} width={900} height={460} className="h-full w-full touch-none" onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);active.current=[point(e)];}} onPointerMove={e=>{if(!active.current)return;active.current.push(point(e));redraw([...strokes,active.current]);}} onPointerUp={()=>{if(active.current?.length){setStrokes(v=>[...v,active.current!]);}active.current=null;}} aria-label="Write an approved artisan name with your finger" />
+  <div className="absolute bottom-3 left-3 right-3 flex justify-between gap-3"><button type="button" onClick={()=>setStrokes([])} disabled={busy||strokes.length===0} className="rounded-full border border-white/15 px-4 py-2 text-xs uppercase tracking-[.18em] text-white/70 disabled:opacity-35">Clear</button><button type="button" onClick={()=>onRecognize(strokes,900,460)} disabled={busy||strokes.length===0} className="rounded-full border border-gold-500/50 bg-gold-500/10 px-5 py-2 text-xs uppercase tracking-[.18em] text-gold-100 disabled:opacity-35">{busy?"Reading…":"Reveal artisan"}</button></div></div>;
+}

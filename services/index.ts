@@ -27,3 +27,5 @@ export * from "@/services/supportTicketService";
 export * from "@/services/wishlistService";
 export * from "./sellerApplicationService";
 export * from "./publicStudioStatusService";
+export * from "./discoveryService";
+export * from "./canvasEngineSettingsService";

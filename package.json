@@ -21,7 +21,8 @@
     "functions:check": "npm run functions:install && npm run functions:build",
     "phase2:verify": "npm run typecheck && npm run lint && npm run test && npm run build",
     "test:phase3": "vitest run utils/phase3Architecture.test.ts",
-    "functions:test": "npm test --prefix firebase/functions"
+    "functions:test": "npm test --prefix firebase/functions",
+    "test:phase35": "vitest run utils/phase35Architecture.test.ts"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.2.8",

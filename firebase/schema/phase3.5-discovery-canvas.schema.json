@@ -1,0 +1,1 @@
+{"phase":"3.5","collections":{"studios":{"query":"active == true AND approved == true"},"settings/canvasEngineFrames":{"default":"CanvasFramePreset","categories":"Record<slug, CanvasFramePreset>"}},"prohibitions":["traditional search box","placeholder sellers","generative image or video calls","product creation UI"]}
