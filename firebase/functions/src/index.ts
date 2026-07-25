@@ -7,3 +7,4 @@ export { createCustomOrderRequest } from "./customOrders.js";
 export { appendOrderTimeline } from "./orderTimeline.js";
 export { createVerifiedReview, guardReviewVerification } from "./reviews.js";
 export { purgeExpiredTempUploads } from "./storageMaintenance.js";
+export { provisionApprovedSeller, reviewSellerApplication, syncStudioRouteStatus } from "./sellerOnboarding";

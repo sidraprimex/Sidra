@@ -2,7 +2,7 @@
   "name": "sidra",
   "version": "0.1.0",
   "private": true,
-  "description": "Sidra \u2014 a curated luxury digital ecosystem for resin art and handcrafted goods.",
+  "description": "Sidra — a curated luxury digital ecosystem for resin art and handcrafted goods.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run build --workspace=sidra-functions",
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "test:rules": "firebase emulators:exec --only firestore \"npm test --prefix tests/rules\"",
@@ -19,7 +19,9 @@
     "functions:build": "npm run build --prefix firebase/functions",
     "rules:install": "npm install --prefix tests/rules",
     "functions:check": "npm run functions:install && npm run functions:build",
-    "phase2:verify": "npm run typecheck && npm run lint && npm run test && npm run build"
+    "phase2:verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "test:phase3": "vitest run utils/phase3Architecture.test.ts",
+    "functions:test": "npm test --prefix firebase/functions"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.2.8",
@@ -31,7 +33,8 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-hook-form": "^7.62.0",
-    "zod": "^4.1.5"
+    "zod": "^4.1.5",
+    "@hookform/resolvers": "^5.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
@@ -45,5 +48,8 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
     "@eslint/eslintrc": "^3.3.1"
-  }
+  },
+  "workspaces": [
+    "firebase/functions"
+  ]
 }

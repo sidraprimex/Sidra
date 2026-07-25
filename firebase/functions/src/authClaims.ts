@@ -23,7 +23,7 @@ export const syncUserClaims = onDocumentWritten("users/{uid}", async (event) => 
     return;
   }
 
-  const data = after.data();
+  const data = after.data() ?? {};
   const requestedRole = typeof data.role === "string" && VALID_ROLES.has(data.role) ? data.role : "customer";
   let effectiveRole = requestedRole;
 

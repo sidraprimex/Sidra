@@ -14,3 +14,5 @@ export * from "@/types/product";
 export * from "@/types/reserved";
 export * from "@/types/review";
 export * from "@/types/studio";
+export * from "./seller-application";
+export * from "./studio-provisioning";

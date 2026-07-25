@@ -6,6 +6,9 @@ service cloud.firestore {
     function role() { return signedIn() ? request.auth.token.role : null; }
     function studioId() { return signedIn() ? request.auth.token.studioId : null; }
     function verified() { return signedIn() && request.auth.token.email_verified == true; }
+
+    function seller() { return role() == 'seller'; }
+    function sameStudio(studioId) { return signedIn() && request.auth.token.studioId == studioId; }
     function founder() { return role() in ['founder', 'superAdmin']; }
     function supportAdmin() { return role() in ['support', 'founder', 'superAdmin']; }
     function contentAdmin() { return role() in ['contentManager', 'founder', 'superAdmin']; }
@@ -290,6 +293,75 @@ service cloud.firestore {
     match /giftCards/{documentId} { allow read, write: if false; }
     match /loyaltyLedger/{documentId} { allow read, write: if false; }
     match /subscriptionsBilling/{documentId} { allow read, write: if false; }
+
+    match /studios/{studioId} {
+      allow read: if founder() || sameStudio(studioId) || resource.data.active == true;
+      allow create: if false;
+      allow update: if founder() || (
+        seller() && sameStudio(studioId)
+        && request.resource.data.slug == resource.data.slug
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.active == resource.data.active
+        && request.resource.data.provisioningState == resource.data.provisioningState
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'description', 'logoUrl', 'bannerUrl', 'galleryUrls', 'category',
+          'seo', 'policies', 'updatedAt'
+        ])
+      );
+      allow delete: if false;
+    }
+
+    match /sellerApplications/{applicationId} {
+      allow read: if founder() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if verified()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == 'pending'
+        && request.resource.data.studioId == null
+        && request.resource.data.slug == null
+        && request.resource.data.reviewNote == null
+        && request.resource.data.reviewedBy == null
+        && request.resource.data.failureReason == null
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.provisionedAt == null
+        && request.resource.data.fullName is string
+        && request.resource.data.studioName is string
+        && request.resource.data.mobile is string
+        && request.resource.data.city is string
+        && request.resource.data.state is string
+        && request.resource.data.experience is string
+        && request.resource.data.whyJoin is string
+        && (request.resource.data.instagram == null || request.resource.data.instagram is string)
+        && request.resource.data.productCategories is list
+        && request.resource.data.productCategories.size() >= 1
+        && request.resource.data.productCategories.size() <= 20
+        && request.resource.data.expectedMonthlyCapacity is int
+        && request.resource.data.expectedMonthlyCapacity >= 1
+        && request.resource.data.expectedMonthlyCapacity <= 100000
+        && request.resource.data.portfolioImages is list
+        && request.resource.data.portfolioImages.size() >= 1
+        && request.resource.data.portfolioImages.size() <= 8
+        && request.resource.data.portfolioImages[0].path is string
+        && request.resource.data.portfolioImages[0].path.matches('^temp/' + request.auth.uid + '/seller-applications/.*$')
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.keys().hasOnly([
+          'uid', 'fullName', 'studioName', 'email', 'mobile', 'city', 'state',
+          'portfolioImages', 'instagram', 'experience', 'productCategories', 'whyJoin',
+          'expectedMonthlyCapacity', 'status', 'reviewNote', 'reviewedBy', 'studioId',
+          'slug', 'failureReason', 'createdAt', 'updatedAt', 'reviewedAt', 'provisionedAt'
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /studioRoutes/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /mail/{mailId} {
+      allow read, write: if false;
+    }
 
     match /{document=**} {
       allow read, write: if false;

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { RoleClaimRefreshBridge } from "@/components/auth/RoleClaimRefreshBridge";
 import { SiteFrame } from "@/components/layout/SiteFrame";
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <AuthProvider>
+          <RoleClaimRefreshBridge />
           <SiteFrame>{children}</SiteFrame>
         </AuthProvider>
       </body>

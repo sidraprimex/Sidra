@@ -1,14 +1,44 @@
 {
   "active": [
-    "users", "studios", "products", "categories", "collections", "orders",
-    "customOrders", "reviews", "followers", "wishlists", "carts", "notifications",
-    "messages", "supportTickets", "payments", "payouts", "coupons", "campaigns",
-    "journal", "media", "analytics", "cms", "settings", "automationRules",
-    "auditLogs", "corporateLeads", "seo"
+    "users",
+    "studios",
+    "products",
+    "categories",
+    "collections",
+    "orders",
+    "customOrders",
+    "reviews",
+    "followers",
+    "wishlists",
+    "carts",
+    "notifications",
+    "messages",
+    "supportTickets",
+    "payments",
+    "payouts",
+    "coupons",
+    "campaigns",
+    "journal",
+    "media",
+    "analytics",
+    "cms",
+    "settings",
+    "automationRules",
+    "auditLogs",
+    "corporateLeads",
+    "seo"
   ],
   "reservedInactiveV1": [
-    "affiliates", "giftCards", "loyaltyLedger", "subscriptionsBilling"
+    "affiliates",
+    "giftCards",
+    "loyaltyLedger",
+    "subscriptionsBilling"
   ],
   "schemaSource": "types/*.ts",
-  "notes": "Firestore is schemaless and does not retain empty collections. Active schemas are enforced by TypeScript, services, Cloud Functions, rules and indexes. Reserved collections remain denied and have type-only contracts until their locked future phase."
+  "notes": "Firestore is schemaless and does not retain empty collections. Active schemas are enforced by TypeScript, services, Cloud Functions, rules and indexes. Reserved collections remain denied and have type-only contracts until their locked future phase.",
+  "phase3Collections": [
+    "sellerApplications",
+    "studioRoutes",
+    "mail"
+  ]
 }

@@ -1,0 +1,38 @@
+{
+  "phase": 3,
+  "collections": {
+    "sellerApplications": {
+      "purpose": "Pre-approval artisan requests. Never creates a Studio directly.",
+      "statuses": [
+        "pending",
+        "approved",
+        "rejected",
+        "moreInfoRequested",
+        "onHold",
+        "provisioning",
+        "provisioned",
+        "provisioningFailed"
+      ],
+      "clientInitialStatus": "pending",
+      "immutableAfterCreate": true,
+      "serverManagedFields": [
+        "status",
+        "reviewNote",
+        "reviewedBy",
+        "studioId",
+        "slug",
+        "failureReason",
+        "reviewedAt",
+        "provisionedAt"
+      ]
+    },
+    "studioRoutes": {
+      "purpose": "Permanent collision-checked Studio slug reservation and public availability boundary.",
+      "clientWrite": false
+    },
+    "mail": {
+      "purpose": "Server-only Trigger Email outbox populated from CMS templates.",
+      "clientWrite": false
+    }
+  }
+}

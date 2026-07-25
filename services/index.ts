@@ -25,3 +25,5 @@ export * from "@/services/settingsService";
 export * from "@/services/studioService";
 export * from "@/services/supportTicketService";
 export * from "@/services/wishlistService";
+export * from "./sellerApplicationService";
+export * from "./publicStudioStatusService";

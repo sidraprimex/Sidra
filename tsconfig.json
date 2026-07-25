@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "firebase/functions": [
+        "./node_modules/firebase/functions/dist/functions/index.d.ts"
       ]
     }
   },
