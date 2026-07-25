@@ -42,3 +42,12 @@ export {
 export * from "./productModerationService";
 export * from "./productApprovalService";
 export * from "./taxonomyManagementService";
+export {
+  getHomepageDocument,
+  getPublicProductBySlug,
+  getPublicStudioBySlug,
+  listPublicStudios,
+  listRelatedProducts,
+  listPublishedProducts as listPhase5PublishedProducts,
+} from "./publicDiscoveryService";
+export * from "./recentlyViewedService";

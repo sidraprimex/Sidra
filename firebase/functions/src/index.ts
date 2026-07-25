@@ -11,3 +11,4 @@ export { provisionApprovedSeller, reviewSellerApplication, syncStudioRouteStatus
 export { recognizeSellerHandwriting } from "./handwritingRecognition";
 export { validateProductMediaUpload } from "./productMediaValidation";
 export { moderateProduct } from "./productPublishing";
+export { maintainProductSearchIndex } from "./productSearchIndex";

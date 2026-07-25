@@ -1,0 +1,16 @@
+{
+  "cms/homepage": {
+    "cacheTtlSeconds": 60,
+    "orderedTypedBlocks": true
+  },
+  "products": {
+    "searchTokens": "string[]",
+    "searchSortKey": "string",
+    "searchIndexedAt": "timestamp"
+  },
+  "recentlyViewed/{userId}": {
+    "userId": "string",
+    "entries": "RecentlyViewedEntry[] capped at 20",
+    "updatedAt": "timestamp"
+  }
+}

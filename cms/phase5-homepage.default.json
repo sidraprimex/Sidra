@@ -1,0 +1,132 @@
+{
+  "blocks": [
+    {
+      "id": "hero",
+      "type": "Hero",
+      "enabled": true,
+      "order": 1,
+      "data": {
+        "eyebrow": "Curated resin artistry",
+        "headline": "Objects made slowly. Kept for years.",
+        "subhead": "Discover verified independent Studios creating handcrafted resin pieces across India.",
+        "primaryCtaLabel": "Explore Studios",
+        "primaryCtaHref": "/studios",
+        "secondaryCtaLabel": "Browse Collections",
+        "secondaryCtaHref": "/collection/signature"
+      }
+    },
+    {
+      "id": "featured-studios",
+      "type": "FeaturedStudios",
+      "enabled": true,
+      "order": 2,
+      "data": {
+        "title": "Featured Studios",
+        "limit": 6
+      }
+    },
+    {
+      "id": "featured-collections",
+      "type": "FeaturedCollections",
+      "enabled": true,
+      "order": 3,
+      "data": {
+        "title": "Curated Collections",
+        "limit": 6
+      }
+    },
+    {
+      "id": "signature-categories",
+      "type": "SignatureCategories",
+      "enabled": true,
+      "order": 4,
+      "data": {
+        "title": "Signature Categories",
+        "limit": 8
+      }
+    },
+    {
+      "id": "best-sellers",
+      "type": "BestSellers",
+      "enabled": true,
+      "order": 5,
+      "data": {
+        "title": "Most Collected",
+        "limit": 8
+      }
+    },
+    {
+      "id": "new-arrivals",
+      "type": "NewArrivals",
+      "enabled": true,
+      "order": 6,
+      "data": {
+        "title": "New Arrivals",
+        "limit": 8
+      }
+    },
+    {
+      "id": "custom-order",
+      "type": "CustomOrderBanner",
+      "enabled": true,
+      "order": 7,
+      "data": {
+        "title": "Made around your story",
+        "body": "Commission a personalised piece from a verified Studio.",
+        "ctaLabel": "Start a Custom Order",
+        "ctaHref": "/custom-orders"
+      }
+    },
+    {
+      "id": "why",
+      "type": "WhyResora",
+      "enabled": true,
+      "order": 8,
+      "data": {
+        "title": "Craft, protected by trust",
+        "items": [
+          "Verified Studios",
+          "Transparent order tracking",
+          "One trusted support line"
+        ]
+      }
+    },
+    {
+      "id": "stories",
+      "type": "ArtistStories",
+      "enabled": true,
+      "order": 9,
+      "data": {
+        "title": "Inside the Studio"
+      }
+    },
+    {
+      "id": "testimonials",
+      "type": "Testimonials",
+      "enabled": true,
+      "order": 10,
+      "data": {
+        "title": "Collected with confidence"
+      }
+    },
+    {
+      "id": "journal",
+      "type": "Journal",
+      "enabled": true,
+      "order": 11,
+      "data": {
+        "title": "The Journal"
+      }
+    },
+    {
+      "id": "newsletter",
+      "type": "Newsletter",
+      "enabled": true,
+      "order": 12,
+      "data": {
+        "title": "A quieter kind of update",
+        "body": "New Studios, thoughtful objects, and stories from the makers."
+      }
+    }
+  ]
+}

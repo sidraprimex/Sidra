@@ -383,4 +383,9 @@ match /settings/productModeration {
   allow read: if isAuthenticated();
   allow write: if isFounder();
 }
+
+    // PHASE_5_PUBLIC_DISCOVERY
+match /recentlyViewed/{userId} {
+  allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+}
 }
