@@ -1,0 +1,29 @@
+{
+  "carts/{uid}": {
+    "serverSynced": true,
+    "guestCheckout": false
+  },
+  "addressBooks/{uid}": {
+    "phase6": "minimal",
+    "phase9": "full UI"
+  },
+  "paymentSessions/{id}": {
+    "clientWrite": false,
+    "status": [
+      "initiated",
+      "processed",
+      "expired"
+    ]
+  },
+  "payments/{gatewayPaymentId}": {
+    "idempotencyKey": "gatewayPaymentId",
+    "clientWrite": false
+  },
+  "orders/{orderId}": {
+    "createdOnlyByWebhook": true,
+    "number": "RSR-{year}-{sequential}"
+  },
+  "invoices/{orderId}": {
+    "immutable": true
+  }
+}

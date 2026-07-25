@@ -388,4 +388,20 @@ match /settings/productModeration {
 match /recentlyViewed/{userId} {
   allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
 }
+
+    // PHASE_6_CART_CHECKOUT_PAYMENTS
+match /carts/{userId} {
+  allow read, create, update, delete: if isAuthenticated()
+    && request.auth.uid == userId
+    && request.auth.token.email_verified == true;
+}
+
+match /addressBooks/{userId} {
+  allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId;
+}
+
+match /paymentSessions/{sessionId} {
+  allow read: if isAuthenticated() && resource.data.customerId == request.auth.uid;
+  allow write: if false;
+}
 }

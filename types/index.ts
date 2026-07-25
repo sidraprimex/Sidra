@@ -20,3 +20,4 @@ export * from "./discovery";
 export * from "./canvas-engine";
 export * from "./phase4-taxonomy";
 export * from "./phase5-discovery";
+export * from "./phase6-commerce";

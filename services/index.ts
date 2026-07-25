@@ -51,3 +51,13 @@ export {
   listPublishedProducts as listPhase5PublishedProducts,
 } from "./publicDiscoveryService";
 export * from "./recentlyViewedService";
+export {
+  addCartItem,
+  getCart as getSyncedCart,
+  removeCartItem,
+  subscribeCart,
+  updateCartQuantity,
+} from "./cartSyncService";
+export * from "./addressBookService";
+export * from "./checkoutService";
+export * from "./orderConfirmationService";
