@@ -1,0 +1,2 @@
+import { SupportQueue } from "@/components/admin/SupportQueue";
+export default function AdminSupportPage():React.JSX.Element{return <main className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8"><header className="mb-8"><p className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold-600)]">Care operations</p><h1 className="mt-3 font-heading text-5xl">Support queue</h1></header><SupportQueue/></main>}

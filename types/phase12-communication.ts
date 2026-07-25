@@ -1,0 +1,5 @@
+import type { DateTimeValue } from "@/types/firestore";
+export type Phase12SupportCategory = "order" | "customOrder" | "product" | "payment" | "account" | "other";
+export type Phase12SupportStatus = "open" | "assigned" | "inProgress" | "waitingOnCustomer" | "resolved" | "closed";
+export interface Phase12SupportTicket { readonly ticketId:string; readonly customerId:string|null; readonly studioId:string|null; readonly openedByUid:string; readonly assignedAdminUid:string|null; readonly subject:string; readonly category:Phase12SupportCategory; readonly description:string; readonly orderId:string|null; readonly productId:string|null; readonly conversationId:string; readonly status:Phase12SupportStatus; readonly priority:"normal"|"high"; readonly satisfactionRating:number|null; readonly lastMessageAt:DateTimeValue; readonly createdAt:DateTimeValue; readonly updatedAt:DateTimeValue; readonly closedAt:DateTimeValue; }
+export interface CreateSupportTicketInput { readonly subject:string; readonly category:Phase12SupportCategory; readonly description:string; readonly orderId?:string; readonly productId?:string; }

@@ -83,3 +83,4 @@ export {
 } from "./customerEngagementService";
 export { getFounderControlCenterSummary, listAdminAuditLogs, listFinanceLedger, listPlatformContent, saveCommerceSettings, savePlatformContent } from "./founderAdminService";
 export { getSellerAnalyticsSummary, listCustomerSegments, listSellerCampaigns, listSellerCoupons, saveCustomerSegment, saveSellerCampaign, saveSellerCoupon } from "./sellerGrowthService";
+export * from "@/services/phase12CommunicationService";

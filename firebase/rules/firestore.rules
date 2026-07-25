@@ -180,35 +180,17 @@ service cloud.firestore {
         || uid() in resource.data.recipientUids
         || supportAdmin()
       );
-      allow create: if verified()
-        && request.resource.data.senderUid == uid()
-        && request.resource.data.recipientUids is list
-        && request.resource.data.recipientUids.size() > 0
-        && request.resource.data.contextType in ['productInquiry', 'customOrder', 'supportTicket']
-        && validText(request.resource.data.body, 1, 5000);
-      allow update: if signedIn()
-        && resource.data.senderUid == uid()
-        && request.resource.data.senderUid == resource.data.senderUid
-        && changedOnly(['body', 'editedAt', 'deleted']);
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     match /supportTickets/{ticketId} {
       allow read: if signedIn() && (
         resource.data.customerId == uid()
+        || resource.data.openedByUid == uid()
         || ownStudio(resource.data.studioId)
         || supportAdmin()
       );
-      allow create: if verified()
-        && request.resource.data.ticketId == ticketId
-        && (request.resource.data.customerId == uid() || ownStudio(request.resource.data.studioId));
-      allow update: if supportAdmin() || (
-        signedIn()
-        && resource.data.customerId == uid()
-        && request.resource.data.customerId == resource.data.customerId
-        && changedOnly(['description', 'attachmentUrls', 'satisfactionRating', 'updatedAt'])
-      );
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     match /payments/{paymentId} {
