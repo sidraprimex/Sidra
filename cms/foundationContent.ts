@@ -3,18 +3,18 @@ import type { FoundationContent } from "@/types/content";
 export const foundationContent: FoundationContent = {
   navigation: [
     { id: "home", label: "Home", href: "/", enabled: true },
-    { id: "studios", label: "Studios", href: "#studios", enabled: true },
-    { id: "collections", label: "Collections", href: "#collections", enabled: true },
-    { id: "journal", label: "Journal", href: "#journal", enabled: true },
-    { id: "custom", label: "Custom Orders", href: "#custom-orders", enabled: true },
-    { id: "about", label: "About", href: "#about", enabled: true },
-    { id: "support", label: "Support", href: "#support", enabled: true }
+    { id: "studios", label: "Studios", href: "/studios", enabled: true },
+    { id: "collections", label: "Collections", href: "/collections", enabled: true },
+    { id: "journal", label: "Journal", href: "/journal", enabled: true },
+    { id: "custom", label: "Custom Orders", href: "/custom-orders", enabled: true },
+    { id: "about", label: "About", href: "/about", enabled: true },
+    { id: "support", label: "Support", href: "/support", enabled: true }
   ],
   footer: {
     brandLine: "A private digital home for extraordinary craft.",
     groups: [
-      { id: "discover", title: "Discover", links: [{ id: "studios", label: "Studios", href: "#studios" }, { id: "collections", label: "Collections", href: "#collections" }] },
-      { id: "sidra", title: "Sidra", links: [{ id: "about", label: "About", href: "#about" }, { id: "support", label: "Support", href: "#support" }] }
+      { id: "discover", title: "Discover", links: [{ id: "studios", label: "Studios", href: "/studios" }, { id: "collections", label: "Collections", href: "/collections" }] },
+      { id: "sidra", title: "Sidra", links: [{ id: "about", label: "About", href: "/about" }, { id: "support", label: "Support", href: "/support" }] }
     ],
     legalLine: "Sidra. Crafted with restraint."
   },

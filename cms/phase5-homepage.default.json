@@ -12,7 +12,7 @@
         "primaryCtaLabel": "Explore Studios",
         "primaryCtaHref": "/studios",
         "secondaryCtaLabel": "Browse Collections",
-        "secondaryCtaHref": "/collection/signature"
+        "secondaryCtaHref": "/collections"
       }
     },
     {
@@ -79,7 +79,7 @@
     },
     {
       "id": "why",
-      "type": "WhyResora",
+      "type": "WhySidra",
       "enabled": true,
       "order": 8,
       "data": {

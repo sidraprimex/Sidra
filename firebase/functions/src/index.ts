@@ -30,3 +30,4 @@ export { createSupportTicket, sendSupportMessage, manageSupportTicket, markAllNo
 export { recordSecuritySignal, reviewSecuritySignal, saveReleaseEvidence, getLaunchReadinessSummary } from "./launchReadiness";
 export { verifyDailyBackupInventory, purgeExpiredSoftDeletedAccounts } from "./backupMaintenance";
 export { monitorPaymentWebhookFailures } from "./healthMonitoring";
+export { subscribeToNewsletter } from "./newsletter";

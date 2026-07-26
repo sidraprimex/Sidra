@@ -8,7 +8,7 @@ export type HomepageBlockType =
   | "BestSellers"
   | "NewArrivals"
   | "CustomOrderBanner"
-  | "WhyResora"
+  | "WhySidra"
   | "ArtistStories"
   | "Testimonials"
   | "Journal"
@@ -57,6 +57,10 @@ export interface PublicProduct extends StudioProduct {
   readonly studioSlug?: string;
   readonly rating?: number;
   readonly reviewCount?: number;
+  readonly featured?: boolean;
+  readonly viewCount?: number;
+  readonly wishlistCount?: number;
+  readonly salesCount?: number;
   readonly tags?: readonly string[];
   readonly searchTokens?: readonly string[];
 }

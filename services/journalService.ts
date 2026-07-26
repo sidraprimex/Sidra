@@ -6,6 +6,21 @@ export function getJournalArticle(articleId: string): Promise<JournalArticle | n
   return getDocumentById<JournalArticle>("journal", articleId);
 }
 
+export async function getPublishedJournalBySlug(
+  slug: string,
+): Promise<JournalArticle | null> {
+  const articles = await listDocuments<JournalArticle>(
+    "journal",
+    [
+      where("slug", "==", slug),
+      where("status", "==", "published"),
+    ],
+    1,
+  );
+
+  return articles[0] ?? null;
+}
+
 export function listPublishedJournal(maxResults = 20): Promise<readonly JournalArticle[]> {
   return listDocuments<JournalArticle>("journal", [where("status", "==", "published"), orderBy("publishedAt", "desc")], maxResults);
 }
