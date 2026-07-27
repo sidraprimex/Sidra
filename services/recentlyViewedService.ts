@@ -36,9 +36,11 @@ function readLocal(): readonly RecentlyViewedEntry[] {
       (item): item is RecentlyViewedEntry =>
         Boolean(item) &&
         typeof item === "object" &&
-        typeof (item as RecentlyViewedEntry).productId === "string",
+        typeof (item as RecentlyViewedEntry).productId === "string" &&
+        typeof (item as RecentlyViewedEntry).viewedAt === "string",
     );
-    return Array.isArray(value) ? value.slice(0, MAX_ITEMS) : [];
+
+    return entries.slice(0, MAX_ITEMS);
   } catch {
     return [];
   }

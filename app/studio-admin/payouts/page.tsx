@@ -1,9 +1,9 @@
+"use client";
+import { useEffect, useState } from "react";
+import { AccountShell } from "@/components/account/AccountShell";
 import { PayoutSummary } from "@/components/orders/PayoutSummary";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { useRouteGuard } from "@/hooks/useRouteGuard";
 import { listStudioPayouts } from "@/services/orderLifecycleService";
 import type { SellerPayout } from "@/types/phase7-orders";
-
-export default async function StudioPayoutsPage(): Promise<React.JSX.Element> {
-  let payouts: SellerPayout[] = [];
-  try { payouts = [...await listStudioPayouts("current-studio")]; } catch { payouts = []; }
-  return <main className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8"><header className="mb-8"><p className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold-600)]">Seller finance</p><h1 className="mt-3 font-heading text-5xl">Payouts</h1></header><PayoutSummary payouts={payouts} /></main>;
-}
+export default function StudioPayoutsPage(): React.JSX.Element { const auth=useRouteGuard({allowedRoles:["seller","founder","superAdmin"],requireStudioId:true}); const [payouts,setPayouts]=useState<readonly SellerPayout[]|null>(null); useEffect(()=>{if(!auth.claims?.studioId)return;void listStudioPayouts(auth.claims.studioId).then(setPayouts).catch(()=>setPayouts([]));},[auth.claims?.studioId]); if(auth.loading||!auth.user||!payouts)return <LoadingSkeleton count={6}/>; return <AccountShell mode="seller" eyebrow="Seller finance" title="Payouts"><PayoutSummary payouts={[...payouts]}/></AccountShell>; }

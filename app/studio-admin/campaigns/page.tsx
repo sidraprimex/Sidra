@@ -1,7 +1,8 @@
+"use client";
+import { useEffect, useState } from "react";
+import { AccountShell } from "@/components/account/AccountShell";
 import { SellerGrowthManager } from "@/components/studio-admin/SellerGrowthManager";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { useRouteGuard } from "@/hooks/useRouteGuard";
 import { listCustomerSegments } from "@/services/sellerGrowthService";
-export default async function Page(): Promise<React.JSX.Element> {
-  let options: { id: string; name: string }[] = [];
-  try { options = (await listCustomerSegments("current-studio")).map((s) => ({ id: s.segmentId, name: s.name })); } catch {}
-  return <main className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8"><header className="mb-8"><p className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold-600)]">Studio growth engine</p><h1 className="mt-3 font-heading text-5xl">Campaigns</h1></header><SellerGrowthManager studioId="current-studio" mode="campaign" segmentOptions={options} /></main>;
-}
+export default function Page(): React.JSX.Element { const auth=useRouteGuard({allowedRoles:["seller","founder","superAdmin"],requireStudioId:true}); const [options,setOptions]=useState<readonly {id:string;name:string}[]|null>(null); useEffect(()=>{if(!auth.claims?.studioId)return;void listCustomerSegments(auth.claims.studioId).then((items)=>setOptions(items.map((s)=>({id:s.segmentId,name:s.name})))).catch(()=>setOptions([]));},[auth.claims?.studioId]); if(auth.loading||!auth.user||!auth.claims?.studioId||!options)return <LoadingSkeleton count={5}/>; return <AccountShell mode="seller" eyebrow="Studio growth engine" title="Campaigns"><SellerGrowthManager studioId={auth.claims.studioId} mode="campaign" segmentOptions={options}/></AccountShell>; }

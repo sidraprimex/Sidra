@@ -26,7 +26,9 @@
     "test:phase13": "vitest run utils/phase13Architecture.test.ts utils/rbacMatrix.test.ts",
     "release:evidence": "node scripts/release/run-release-gate.mjs",
     "load:checkout": "node scripts/load/checkout-load-test.mjs",
-    "phase13:verify": "npm run typecheck && npm run lint && npm run test:phase13 && npm run functions:test && npm run build"
+    "phase13:verify": "npm run typecheck && npm run lint && npm run test:phase13 && npm run functions:test && npm run build",
+    "verify:production-repair": "node scripts/production/verify-final-repair.mjs",
+    "final:verify": "npm run verify:production-repair && npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.2.8",

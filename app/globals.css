@@ -162,3 +162,18 @@ h6 {
     width: 100%;
   }
 }
+
+/* SIDRA production dashboard and form system */
+[data-dashboard-card],
+.bg-card {
+  background: rgba(248, 244, 240, 0.78);
+  border-color: rgba(59, 30, 53, 0.13);
+  backdrop-filter: blur(16px);
+}
+
+@media (max-width: 767px) {
+  .grid { min-width: 0; }
+  [class*="min-w-"] { max-width: 100%; }
+  table { display: block; width: 100%; overflow-x: auto; }
+  dialog, [role="dialog"] { max-width: 100vw; }
+}

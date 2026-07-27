@@ -5,11 +5,11 @@ import type { FounderControlCenterSummary } from "@/types/phase10-founder-admin"
 export function FounderMetricGrid({ summary }: { readonly summary: FounderControlCenterSummary }): React.JSX.Element {
   const cards = [
     ["Seller applications", summary.pendingSellerApplications, "/admin/sellers/applications"],
-    ["Active sellers", summary.activeSellers, "/admin/sellers"],
+    ["Active sellers", summary.activeSellers, "/admin/sellers/applications"],
     ["Published products", summary.publishedProducts, "/admin/products"],
-    ["Pending orders", summary.pendingOrders, "/admin/orders"],
-    ["Custom orders", summary.pendingCustomOrders, "/admin/custom-orders"],
-    ["Pending reviews", summary.pendingReviews, "/admin/reviews"],
+    ["Pending orders", summary.pendingOrders, "/admin/control-center"],
+    ["Custom orders", summary.pendingCustomOrders, "/admin/control-center"],
+    ["Pending reviews", summary.pendingReviews, "/admin/products"],
   ] as const;
   return <div className="grid gap-6">
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([label, value, href]) =>

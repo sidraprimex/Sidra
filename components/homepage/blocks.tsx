@@ -933,7 +933,7 @@ export function NewArrivalsBlock({
 
             <p className="mt-6 max-w-2xl text-caption leading-7 text-gray-300">
               Published products are loaded directly from Firebase.
-              No sample or fake product cards are shown.
+              Only verified, published Sidra products appear here.
             </p>
 
             <Link

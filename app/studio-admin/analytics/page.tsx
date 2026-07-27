@@ -1,8 +1,10 @@
+"use client";
+import { useEffect, useState } from "react";
+import { AccountShell } from "@/components/account/AccountShell";
 import { SellerGrowthDashboard } from "@/components/studio-admin/SellerGrowthDashboard";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { useRouteGuard } from "@/hooks/useRouteGuard";
 import { getSellerAnalyticsSummary } from "@/services/sellerGrowthService";
 import type { SellerAnalyticsSummary } from "@/types/phase11-seller-growth";
-export default async function Page(): Promise<React.JSX.Element> {
-  let summary: SellerAnalyticsSummary = { grossSalesPaise: 0, netSalesPaise: 0, orderCount: 0, customOrderCount: 0, averageOrderValuePaise: 0, conversionRate: 0, repeatCustomerRate: 0, refundRate: 0, wishlistCount: 0, followerCount: 0 };
-  try { summary = await getSellerAnalyticsSummary("current-studio"); } catch {}
-  return <main className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8"><header className="mb-8"><p className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold-600)]">Studio intelligence</p><h1 className="mt-3 font-heading text-5xl">Seller growth</h1></header><SellerGrowthDashboard summary={summary} /></main>;
-}
+const empty: SellerAnalyticsSummary = { grossSalesPaise:0, netSalesPaise:0, orderCount:0, customOrderCount:0, averageOrderValuePaise:0, conversionRate:0, repeatCustomerRate:0, refundRate:0, wishlistCount:0, followerCount:0 };
+export default function Page(): React.JSX.Element { const auth=useRouteGuard({allowedRoles:["seller","founder","superAdmin"],requireStudioId:true}); const [summary,setSummary]=useState<SellerAnalyticsSummary|null>(null); useEffect(()=>{if(!auth.claims?.studioId)return;void getSellerAnalyticsSummary(auth.claims.studioId).then(setSummary).catch(()=>setSummary(empty));},[auth.claims?.studioId]); if(auth.loading||!auth.user||!summary)return <LoadingSkeleton count={8}/>; return <AccountShell mode="seller" eyebrow="Studio intelligence" title="Seller growth"><SellerGrowthDashboard summary={summary}/></AccountShell>; }

@@ -1,4 +1,6 @@
+"use client";
+import { AccountShell } from "@/components/account/AccountShell";
 import { SellerGrowthManager } from "@/components/studio-admin/SellerGrowthManager";
-export default function Page(): React.JSX.Element {
-  return <main className="mx-auto w-full max-w-3xl px-5 py-12 sm:px-8"><header className="mb-8"><p className="text-xs uppercase tracking-[0.18em] text-[var(--color-gold-600)]">Controlled offers</p><h1 className="mt-3 font-heading text-5xl">Coupons</h1></header><SellerGrowthManager studioId="current-studio" mode="coupon" /></main>;
-}
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { useRouteGuard } from "@/hooks/useRouteGuard";
+export default function Page(): React.JSX.Element { const auth=useRouteGuard({allowedRoles:["seller","founder","superAdmin"],requireStudioId:true}); if(auth.loading||!auth.user||!auth.claims?.studioId)return <LoadingSkeleton count={5}/>; return <AccountShell mode="seller" eyebrow="Controlled offers" title="Coupons"><SellerGrowthManager studioId={auth.claims.studioId} mode="coupon"/></AccountShell>; }

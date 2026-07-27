@@ -6,7 +6,7 @@ describe("Phase 5 discovery architecture", () => {
   it("keeps the locked homepage block order", () => {
     expect(defaultHomepage.blocks.map((block) => block.type)).toEqual([
       "Hero","FeaturedStudios","FeaturedCollections","SignatureCategories","BestSellers","NewArrivals",
-      "CustomOrderBanner","WhyResora","ArtistStories","Testimonials","Journal","Newsletter",
+      "CustomOrderBanner","WhySidra","ArtistStories","Testimonials","Journal","Newsletter",
     ]);
   });
   it("creates prefix tokens for Firestore search", () => {

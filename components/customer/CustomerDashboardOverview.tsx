@@ -6,8 +6,8 @@ const cards = [
   ["Delivered", "deliveredOrderCount", "/account/orders"],
   ["Custom orders", "customOrderCount", "/account/custom-orders"],
   ["Wishlist", "wishlistCount", "/account/wishlist"],
-  ["Followed Studios", "followedStudioCount", "/account/following"],
-  ["Pending reviews", "pendingReviewCount", "/account/reviews"],
+  ["Followed Studios", "followedStudioCount", "/studios"],
+  ["Pending reviews", "pendingReviewCount", "/account/orders"],
 ] as const;
 
 export function CustomerDashboardOverview({ summary }: { readonly summary: CustomerDashboardSummary }): React.JSX.Element {

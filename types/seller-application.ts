@@ -1,4 +1,4 @@
-import type { Timestamp } from "firebase/firestore";
+import type { DateTimeValue } from "@/types/firestore";
 
 export const SELLER_APPLICATION_STATUSES = [
   "pending",
@@ -46,8 +46,8 @@ export interface SellerApplication extends SellerApplicationInput {
   studioId: string | null;
   slug: string | null;
   failureReason: string | null;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
-  reviewedAt: Timestamp | null;
-  provisionedAt: Timestamp | null;
+  createdAt: DateTimeValue;
+  updatedAt: DateTimeValue;
+  reviewedAt: DateTimeValue;
+  provisionedAt: DateTimeValue;
 }
