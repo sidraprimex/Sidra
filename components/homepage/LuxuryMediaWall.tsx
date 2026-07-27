@@ -9,9 +9,10 @@ import { SIDRA_WALL_IMAGES } from "@/components/homepage/sidraMediaManifest";
 
 const PREVIEW_LIMIT = 12;
 
-export function LuxuryMediaWall(): React.JSX.Element {
+export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly string[] }): React.JSX.Element {
+  const imagePool = images.length > 0 ? images : SIDRA_WALL_IMAGES;
   const previewImages =
-    SIDRA_WALL_IMAGES.slice(0, PREVIEW_LIMIT);
+    imagePool.slice(0, PREVIEW_LIMIT);
 
   const [selectedIndex, setSelectedIndex] =
     useState<number | null>(null);
@@ -47,7 +48,7 @@ export function LuxuryMediaWall(): React.JSX.Element {
       if (event.key === "ArrowRight") {
         setSelectedIndex(
           (selectedIndex + 1) %
-            SIDRA_WALL_IMAGES.length,
+            imagePool.length,
         );
       }
 
@@ -55,8 +56,8 @@ export function LuxuryMediaWall(): React.JSX.Element {
         setSelectedIndex(
           (selectedIndex -
             1 +
-            SIDRA_WALL_IMAGES.length) %
-            SIDRA_WALL_IMAGES.length,
+            imagePool.length) %
+            imagePool.length,
         );
       }
     }
@@ -72,16 +73,16 @@ export function LuxuryMediaWall(): React.JSX.Element {
         handleKeyDown,
       );
     };
-  }, [selectedIndex]);
+  }, [imagePool, selectedIndex]);
 
   const selectedImage =
     selectedIndex === null
       ? null
-      : SIDRA_WALL_IMAGES[selectedIndex];
+      : imagePool[selectedIndex];
 
   function openImage(src: string): void {
     const index = (
-      SIDRA_WALL_IMAGES as readonly string[]
+      imagePool as readonly string[]
     ).indexOf(src);
 
     if (index >= 0) {
@@ -98,8 +99,8 @@ export function LuxuryMediaWall(): React.JSX.Element {
     setSelectedIndex(
       (selectedIndex -
         1 +
-        SIDRA_WALL_IMAGES.length) %
-        SIDRA_WALL_IMAGES.length,
+        imagePool.length) %
+        imagePool.length,
     );
   }
 
@@ -110,7 +111,7 @@ export function LuxuryMediaWall(): React.JSX.Element {
 
     setSelectedIndex(
       (selectedIndex + 1) %
-        SIDRA_WALL_IMAGES.length,
+        imagePool.length,
     );
   }
 
@@ -228,7 +229,7 @@ export function LuxuryMediaWall(): React.JSX.Element {
             </div>
 
             <div className="grid grid-cols-2 gap-3 py-6 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-              {SIDRA_WALL_IMAGES.map(
+              {imagePool.map(
                 (src, index) => (
                   <button
                     key={src}
@@ -308,7 +309,7 @@ export function LuxuryMediaWall(): React.JSX.Element {
               <p className="text-xs text-white/65">
                 {(selectedIndex ?? 0) + 1}
                 {" / "}
-                {SIDRA_WALL_IMAGES.length}
+                {imagePool.length}
               </p>
             </div>
           </div>

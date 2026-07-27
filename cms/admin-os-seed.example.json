@@ -1,0 +1,25 @@
+{
+  "theme": {
+    "deepPlum": "#3b1e35",
+    "dustyRose": "#d9a7b0",
+    "porcelain": "#f8f4f0",
+    "champagne": "#d5bd9f",
+    "deepOnyx": "#1c1c1c",
+    "cardRadiusRem": 1.6
+  },
+  "payments": {
+    "mode": "manual",
+    "razorpayEnabled": false,
+    "manualEnabled": true,
+    "upiId": "",
+    "accountHolderName": "",
+    "bankName": "",
+    "accountNumber": "",
+    "ifsc": "",
+    "instructions": "Transfer the exact order amount, then submit the UTR for Admin verification.",
+    "supportContact": ""
+  },
+  "textOverrides": {
+    "replacements": []
+  }
+}

@@ -26,7 +26,7 @@ function normalizedName(user: User, fallback?: string): string {
   return candidate.slice(0, 120);
 }
 
-export async function ensureUserProfile(user: User, fullName?: string): Promise<void> {
+export async function ensureUserProfile(user: User, fullName?: string, phone?: string): Promise<void> {
   const db = requireDatabase();
   const userRef = doc(db, USERS_COLLECTION, user.uid);
 
@@ -37,7 +37,7 @@ export async function ensureUserProfile(user: User, fullName?: string): Promise<
         uid: user.uid,
         fullName: normalizedName(user, fullName),
         email: user.email ?? "",
-        phone: user.phoneNumber ?? null,
+        phone: phone?.trim() || user.phoneNumber || null,
         role: "customer",
         studioId: null,
         profilePhoto: user.photoURL ?? null,

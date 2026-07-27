@@ -2,6 +2,7 @@ import {
   browserLocalPersistence,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  OAuthProvider,
   onIdTokenChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -48,13 +49,14 @@ export function subscribeToAuthState(
 
 export async function registerWithEmail(params: {
   readonly fullName: string;
+  readonly phone: string;
   readonly email: string;
   readonly password: string;
 }): Promise<User> {
   const auth = await prepareAuth();
   const credential = await createUserWithEmailAndPassword(auth, params.email.trim(), params.password);
   await updateProfile(credential.user, { displayName: params.fullName.trim() });
-  await ensureUserProfile(credential.user, params.fullName);
+  await ensureUserProfile(credential.user, params.fullName, params.phone);
   await sendEmailVerification(credential.user);
   return credential.user;
 }
@@ -72,6 +74,14 @@ export async function loginWithGoogle(): Promise<User> {
   const auth = await prepareAuth();
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
+  return provision(await signInWithPopup(auth, provider));
+}
+
+export async function loginWithApple(): Promise<User> {
+  const auth = await prepareAuth();
+  const provider = new OAuthProvider("apple.com");
+  provider.addScope("email");
+  provider.addScope("name");
   return provision(await signInWithPopup(auth, provider));
 }
 

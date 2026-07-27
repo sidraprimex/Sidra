@@ -15,6 +15,8 @@ interface SidraHeroExperienceProps {
   readonly primaryCtaHref: string;
   readonly secondaryCtaLabel: string;
   readonly secondaryCtaHref: string;
+  readonly videoUrl?: string;
+  readonly images?: readonly string[];
 }
 
 const LAST_HERO_KEY = "sidra-last-hero-image";
@@ -36,7 +38,7 @@ function resolveFirstName(
   return value?.split(/\s+/)[0] || null;
 }
 
-function chooseNextImage(): string {
+function chooseNextImage(images: readonly string[]): string {
   let previous = "";
 
   try {
@@ -45,12 +47,12 @@ function chooseNextImage(): string {
     previous = "";
   }
 
-  const candidates = SIDRA_HERO_IMAGES.filter(
+  const candidates = images.filter(
     (image) => image !== previous,
   );
 
   const pool =
-    candidates.length > 0 ? candidates : SIDRA_HERO_IMAGES;
+    candidates.length > 0 ? candidates : images;
 
   const values = new Uint32Array(1);
   window.crypto.getRandomValues(values);
@@ -74,9 +76,12 @@ export function SidraHeroExperience({
   primaryCtaHref,
   secondaryCtaLabel,
   secondaryCtaHref,
+  videoUrl = "",
+  images = [],
 }: SidraHeroExperienceProps): React.JSX.Element {
+  const imagePool = images.length > 0 ? images : SIDRA_HERO_IMAGES;
   const fallbackImage: string =
-    SIDRA_HERO_IMAGES[0];
+    imagePool[0];
 
   const [selectedImage, setSelectedImage] =
     useState<string>(fallbackImage);
@@ -85,9 +90,9 @@ export function SidraHeroExperience({
   const { loading, profile, user } = useAuth();
 
   useEffect(() => {
-    setSelectedImage(chooseNextImage());
+    setSelectedImage(chooseNextImage(imagePool));
     setReady(true);
-  }, []);
+  }, [imagePool]);
 
   const greeting = useMemo(() => {
     const name = resolveFirstName(
@@ -122,14 +127,26 @@ export function SidraHeroExperience({
         }}
         className="absolute inset-0"
       >
-        <Image
-          src={selectedImage}
-          alt="Luxury handcrafted resin artwork"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
+        {videoUrl ? (
+          <video
+            src={videoUrl}
+            poster={selectedImage}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover object-center"
+          />
+        ) : (
+          <Image
+            src={selectedImage}
+            alt="Luxury handcrafted resin artwork"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+        )}
       </motion.div>
 
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(28,28,28,0.12),rgba(59,30,53,0.38)_46%,rgba(28,28,28,0.94))] md:bg-[linear-gradient(90deg,rgba(28,28,28,0.95),rgba(59,30,53,0.62)_54%,rgba(28,28,28,0.15))]" />

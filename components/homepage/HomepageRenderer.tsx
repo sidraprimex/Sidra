@@ -33,7 +33,7 @@ export function HomepageRenderer({
         />
       ) : null}
 
-      <HomepageBackgroundSlideshow>
+      <HomepageBackgroundSlideshow images={experience.document.backgroundImages}>
         {remainingBlocks.map((block) => (
           <BlockRenderer
             key={block.id}

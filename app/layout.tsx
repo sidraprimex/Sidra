@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RoleClaimRefreshBridge } from "@/components/auth/RoleClaimRefreshBridge";
 import { SiteFrame } from "@/components/layout/SiteFrame";
+import { RuntimeThemeProvider } from "@/components/runtime/RuntimeThemeProvider";
+import { RuntimeContentProvider } from "@/components/runtime/RuntimeContentProvider";
 
 export const metadata: Metadata = {
   title: { default: "Sidra", template: "%s · Sidra" },
@@ -23,10 +25,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          <RoleClaimRefreshBridge />
-          <SiteFrame>{children}</SiteFrame>
-        </AuthProvider>
+        <RuntimeThemeProvider>
+          <RuntimeContentProvider>
+          <AuthProvider>
+            <RoleClaimRefreshBridge />
+            <SiteFrame>{children}</SiteFrame>
+          </AuthProvider>
+          </RuntimeContentProvider>
+        </RuntimeThemeProvider>
       </body>
     </html>
   );

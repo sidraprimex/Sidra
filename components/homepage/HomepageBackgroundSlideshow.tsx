@@ -7,11 +7,14 @@ import { SIDRA_BACKGROUND_IMAGES } from "@/components/homepage/sidraMediaManifes
 
 interface HomepageBackgroundSlideshowProps {
   readonly children: ReactNode;
+  readonly images?: readonly string[];
 }
 
 export function HomepageBackgroundSlideshow({
   children,
+  images = [],
 }: HomepageBackgroundSlideshowProps): React.JSX.Element {
+  const imagePool = images.length > 0 ? images : SIDRA_BACKGROUND_IMAGES;
   const [activeIndex, setActiveIndex] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -35,7 +38,7 @@ export function HomepageBackgroundSlideshow({
   useEffect(() => {
     if (
       reducedMotion ||
-      SIDRA_BACKGROUND_IMAGES.length < 2
+      imagePool.length < 2
     ) {
       return;
     }
@@ -44,18 +47,18 @@ export function HomepageBackgroundSlideshow({
       setActiveIndex(
         (current) =>
           (current + 1) %
-          SIDRA_BACKGROUND_IMAGES.length,
+          imagePool.length,
       );
     }, 6200);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [reducedMotion]);
+  }, [imagePool, reducedMotion]);
 
   const activeImage =
-    SIDRA_BACKGROUND_IMAGES[
-      activeIndex % Math.max(SIDRA_BACKGROUND_IMAGES.length, 1)
+    imagePool[
+      activeIndex % Math.max(imagePool.length, 1)
     ] ?? "/media/sidra/homepage/322668.jpg";
 
   const motionPreset = activeIndex % 5;

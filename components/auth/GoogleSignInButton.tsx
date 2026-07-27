@@ -6,9 +6,16 @@ import { Button } from "@/components/ui/Button";
 import { loginWithGoogle } from "@/services/authService";
 import { getAuthErrorMessage } from "@/utils/authErrors";
 
-export function GoogleSignInButton({ destination = "/account/overview", onError }: { destination?: string; onError?: (message: string) => void }) {
+export function GoogleSignInButton({
+  destination = "/search",
+  onError,
+}: {
+  readonly destination?: string;
+  readonly onError?: (message: string) => void;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
   return (
     <Button
       type="button"
@@ -17,9 +24,11 @@ export function GoogleSignInButton({ destination = "/account/overview", onError 
       className="w-full"
       onClick={async () => {
         setLoading(true);
+        onError?.("");
         try {
           await loginWithGoogle();
-          router.replace(destination);
+          router.replace(`${destination}${destination.includes("?") ? "&" : "?"}signedIn=1`);
+          router.refresh();
         } catch (error) {
           onError?.(getAuthErrorMessage(error));
         } finally {

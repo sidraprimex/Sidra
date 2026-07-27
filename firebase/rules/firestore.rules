@@ -3,18 +3,33 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function uid() { return signedIn() ? request.auth.uid : null; }
-    function role() { return signedIn() ? request.auth.token.role : null; }
-    function studioId() { return signedIn() ? request.auth.token.studioId : null; }
-    function verified() { return signedIn() && request.auth.token.email_verified == true; }
-
+    function configuredAdmin() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == "syedafsharkhadri63@gmail.com";
+    }
+    function userPath(userId) { return /databases/$(database)/documents/users/$(userId); }
+    function profileExists() { return signedIn() && exists(userPath(uid())); }
+    function profileData() { return get(userPath(uid())).data; }
+    function role() {
+      return configuredAdmin()
+        ? 'admin'
+        : (profileExists() ? profileData().role : null);
+    }
+    function studioId() { return profileExists() ? profileData().studioId : null; }
+    function activeAccount() { return configuredAdmin() || !profileExists() || profileData().status == 'active'; }
+    function verified() { return signedIn() && request.auth.token.email_verified == true && activeAccount(); }
     function seller() { return role() == 'seller'; }
-    function sameStudio(studioId) { return signedIn() && request.auth.token.studioId == studioId; }
-    function founder() { return role() in ['founder', 'superAdmin']; }
-    function supportAdmin() { return role() in ['support', 'founder', 'superAdmin']; }
-    function contentAdmin() { return role() in ['contentManager', 'founder', 'superAdmin']; }
-    function financeAdmin() { return role() in ['financeManager', 'founder', 'superAdmin']; }
-    function marketingAdmin() { return role() in ['marketingManager', 'contentManager', 'founder', 'superAdmin']; }
-    function anyAdmin() { return role() in ['support', 'contentManager', 'financeManager', 'marketingManager', 'founder', 'superAdmin']; }
+    function sameStudio(value) { return signedIn() && studioId() != null && studioId() == value; }
+    function founder() { return role() in ['admin', 'founder', 'superAdmin']; }
+    function supportAdmin() { return role() in ['admin', 'support', 'founder', 'superAdmin']; }
+    function contentAdmin() { return role() in ['admin', 'contentManager', 'founder', 'superAdmin']; }
+    function financeAdmin() { return role() in ['admin', 'financeManager', 'founder', 'superAdmin']; }
+    function marketingAdmin() { return role() in ['admin', 'marketingManager', 'contentManager', 'founder', 'superAdmin']; }
+    function anyAdmin() { return role() in ['admin', 'support', 'contentManager', 'financeManager', 'marketingManager', 'founder', 'superAdmin']; }
+    function isAuthenticated() { return signedIn(); }
+    function isFounder() { return founder(); }
+    function isSeller() { return seller(); }
     function ownUser(userId) { return signedIn() && uid() == userId; }
     function ownStudio(value) { return signedIn() && studioId() != null && studioId() == value; }
     function changedOnly(fields) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields); }
@@ -126,7 +141,7 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-      allow read: if resource.data.moderationStatus == 'visible' || ownStudio(resource.data.studioId) || supportAdmin();
+      allow read: if resource.data.status == 'published' || resource.data.moderationStatus == 'visible' || ownStudio(resource.data.studioId) || supportAdmin();
       allow create: if false;
       allow update: if supportAdmin() || (
         signedIn()
@@ -180,7 +195,39 @@ service cloud.firestore {
         || uid() in resource.data.recipientUids
         || supportAdmin()
       );
-      allow create, update, delete: if false;
+
+      allow create: if verified()
+        && request.resource.data.messageId == messageId
+        && request.resource.data.senderUid == uid()
+        && request.resource.data.contextType == 'supportTicket'
+        && validText(request.resource.data.body, 1, 5000)
+        && request.resource.data.recipientUids is list
+        && request.resource.data.attachmentUrls is list
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.editedAt == null
+        && request.resource.data.deleted == false
+        && request.resource.data.system == false
+        && existsAfter(
+          /databases/$(database)/documents/supportTickets/$(request.resource.data.contextId)
+        )
+        && (
+          getAfter(
+            /databases/$(database)/documents/supportTickets/$(request.resource.data.contextId)
+          ).data.openedByUid == uid()
+          || ownStudio(
+            getAfter(
+              /databases/$(database)/documents/supportTickets/$(request.resource.data.contextId)
+            ).data.studioId
+          )
+          || supportAdmin()
+        )
+        && request.resource.data.keys().hasOnly([
+          'messageId', 'conversationId', 'contextType', 'contextId',
+          'senderUid', 'recipientUids', 'body', 'attachmentUrls',
+          'createdAt', 'editedAt', 'deleted', 'system'
+        ]);
+
+      allow update, delete: if false;
     }
 
     match /supportTickets/{ticketId} {
@@ -190,7 +237,53 @@ service cloud.firestore {
         || ownStudio(resource.data.studioId)
         || supportAdmin()
       );
-      allow create, update, delete: if false;
+
+      allow create: if verified()
+        && request.resource.data.ticketId == ticketId
+        && request.resource.data.customerId == uid()
+        && request.resource.data.openedByUid == uid()
+        && request.resource.data.studioId == null
+        && request.resource.data.assignedAdminUid == null
+        && validText(request.resource.data.subject, 5, 140)
+        && validText(request.resource.data.description, 10, 5000)
+        && request.resource.data.category in [
+          'order', 'customOrder', 'product',
+          'payment', 'account', 'other'
+        ]
+        && request.resource.data.status == 'open'
+        && request.resource.data.priority == 'normal'
+        && request.resource.data.attachmentUrls is list
+        && request.resource.data.satisfactionRating == null
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.lastMessageAt == request.time
+        && request.resource.data.closedAt == null
+        && request.resource.data.keys().hasOnly([
+          'ticketId', 'customerId', 'studioId', 'openedByUid',
+          'assignedAdminUid', 'subject', 'category', 'description',
+          'orderId', 'productId', 'attachmentUrls', 'conversationId',
+          'status', 'priority', 'satisfactionRating', 'lastMessageAt',
+          'createdAt', 'updatedAt', 'closedAt'
+        ]);
+
+      allow update: if supportAdmin() || (
+        signedIn()
+        && resource.data.openedByUid == uid()
+        && request.resource.data.openedByUid == resource.data.openedByUid
+        && request.resource.data.ticketId == resource.data.ticketId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.lastMessageAt == request.time
+        && changedOnly(['updatedAt', 'lastMessageAt', 'status'])
+        && (
+          request.resource.data.status == resource.data.status
+          || (
+            resource.data.status == 'waitingOnCustomer'
+            && request.resource.data.status == 'inProgress'
+          )
+        )
+      );
+
+      allow delete: if false;
     }
 
     match /payments/{paymentId} {
@@ -241,7 +334,7 @@ service cloud.firestore {
     }
 
     match /settings/{documentId} {
-      allow read: if signedIn();
+      allow read: if documentId == "theme" || signedIn();
       allow create, update: if founder();
       allow delete: if false;
     }
@@ -341,12 +434,24 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /manualPaymentRequests/{requestId} {
+      allow create: if verified()
+        && request.resource.data.customerId == uid()
+        && request.resource.data.status == 'pendingVerification'
+        && request.resource.data.paymentReference is string
+        && request.resource.data.paymentReference.size() >= 4
+        && request.resource.data.totalPaise is int
+        && request.resource.data.totalPaise > 0;
+      allow read: if founder() || (signedIn() && resource.data.customerId == uid());
+      allow update, delete: if founder();
+    }
+
     match /mail/{mailId} {
       allow read, write: if false;
     }
 
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if founder();
     }
   }
 

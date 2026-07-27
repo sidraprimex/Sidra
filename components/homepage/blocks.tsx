@@ -174,8 +174,10 @@ export function HeroBlock({
           "secondaryCtaHref",
           "/collections",
         )}
+        videoUrl={text(block.data, "videoUrl", "")}
+        images={strings(block.data, "heroImages")}
       />
-      <LuxuryMediaWall />
+      <LuxuryMediaWall images={strings(block.data, "wallImages")} />
     </>
   );
 }

@@ -29,7 +29,7 @@ export function CustomerDashboardClient(): React.JSX.Element {
       .then(setSummary)
       .catch(() => {
         setSummary(emptySummary);
-        setError("Live dashboard data could not be loaded. Your account remains connected.");
+        setError("Your account is connected. Live totals will appear after the dashboard service is deployed and your first activity is created.");
       });
   }, [auth.user]);
 
@@ -37,7 +37,7 @@ export function CustomerDashboardClient(): React.JSX.Element {
 
   return (
     <AccountShell mode="customer" eyebrow="Private customer space" title="My Sidra">
-      {error ? <p className="mb-5 rounded-[var(--radius-md)] border border-[rgba(140,59,52,0.25)] bg-white/65 p-4 text-sm text-[var(--color-error)]">{error}</p> : null}
+      {error ? <p className="mb-6 rounded-[1.4rem] border border-[rgba(59,30,53,.10)] bg-white/70 p-5 text-sm leading-6 text-black/60 shadow-[0_14px_40px_rgba(59,30,53,.05)]">{error}</p> : null}
       <CustomerDashboardOverview summary={summary} />
     </AccountShell>
   );

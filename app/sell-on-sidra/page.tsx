@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 const applicationSteps = [
   "Create and verify your Sidra account",
   "Submit your craft, portfolio and Studio details",
-  "Founder team reviews quality and brand fit",
+  "Sidra admin reviews quality and brand fit",
   "Approval provisions your complete Sidra Studio",
 ] as const;
 
@@ -143,7 +143,7 @@ export default function SellOnSidraPage(): React.JSX.Element {
 
               <p className="mt-6 max-w-2xl text-caption leading-7 text-gray-300">
                 Verification protects your portfolio and the Studio identity
-                created after Founder approval.
+                created after admin approval.
               </p>
 
               <Link
@@ -193,7 +193,7 @@ export default function SellOnSidraPage(): React.JSX.Element {
                   </h2>
 
                   <p className="mt-4 text-caption leading-7 text-gray-300">
-                    Its latest status will remain available on this page.
+                    Your live Pending, Approved or Rejected status will remain available on this page and inside the Buyer Dashboard menu.
                   </p>
                 </div>
               ) : null}

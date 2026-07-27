@@ -5,10 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useEffect, useState } from "react";
 import { foundationContent } from "@/cms/foundationContent";
+import { getNavigationContent } from "@/services/cmsService";
+import type { NavigationItem } from "@/types/content";
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
 import { useAuth } from "@/hooks/useAuth";
 
 const ADMIN_ROLES = new Set([
+  "admin",
   "support",
   "contentManager",
   "financeManager",
@@ -51,6 +54,7 @@ export function Navigation(): React.JSX.Element {
   const router = useRouter();
   const { user, profile, claims, loading } = useAuth();
   const [solid, setSolid] = useState(false);
+  const [navigationItems, setNavigationItems] = useState<readonly NavigationItem[]>(foundationContent.navigation);
 
   useEffect(() => {
     const updateHeader = (): void => {
@@ -78,7 +82,13 @@ export function Navigation(): React.JSX.Element {
     user?.email,
   );
 
-  const enabledItems = foundationContent.navigation.filter(
+  useEffect(() => {
+    let active = true;
+    void getNavigationContent().then((items) => { if (active) setNavigationItems(items); }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const enabledItems = navigationItems.filter(
     (item) => item.enabled,
   );
 

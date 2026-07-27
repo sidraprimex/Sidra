@@ -4,6 +4,7 @@ export const SIDRA_ROLES = [
   "visitor",
   "customer",
   "seller",
+  "admin",
   "support",
   "contentManager",
   "financeManager",

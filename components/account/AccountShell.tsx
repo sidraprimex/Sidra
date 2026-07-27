@@ -2,98 +2,39 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { logout } from "@/services/authService";
 
-interface AccountShellProps {
-  readonly title: string;
-  readonly eyebrow: string;
-  readonly children: ReactNode;
-  readonly mode?: "customer" | "seller" | "admin";
-}
+interface AccountShellProps { readonly title: string; readonly eyebrow: string; readonly children: ReactNode; readonly mode?: "customer" | "seller" | "admin"; }
+const customerLinks = [["Overview","/account/dashboard"],["Marketplace","/search"],["Profile","/account/profile"],["Orders","/account/orders"],["Custom orders","/account/custom-orders"],["Wishlist","/account/wishlist"],["Notifications","/account/notifications"],["Support","/account/support"],["Studio application","/sell-on-sidra#studio-application-status"]] as const;
+const sellerLinks = [["Overview","/studio-admin/overview"],["Products","/studio-admin/products"],["Orders","/studio-admin/orders"],["Custom orders","/studio-admin/custom-orders"],["Customers","/studio-admin/customers"],["Analytics","/studio-admin/analytics"],["Coupons","/studio-admin/coupons"],["Campaigns","/studio-admin/campaigns"],["Payouts","/studio-admin/payouts"]] as const;
+const adminLinks = [["Admin OS","/admin/control-center#overview"],["Global search","/admin/control-center#search"],["Users","/admin/control-center#users"],["Sellers","/admin/control-center#sellers"],["Seller applications","/admin/sellers/applications"],["Products","/admin/control-center#products"],["Orders","/admin/control-center#orders"],["Support & payments","/admin/control-center#support"],["CMS","/admin/control-center#content"],["Appearance","/admin/control-center#appearance"],["Payment settings","/admin/control-center#payments"],["Firebase data","/admin/control-center#database"],["Audit log","/admin/control-center#audit"]] as const;
 
-const customerLinks = [
-  ["Overview", "/account/dashboard"],
-  ["Orders", "/account/orders"],
-  ["Custom orders", "/account/custom-orders"],
-  ["Wishlist", "/account/wishlist"],
-  ["Notifications", "/account/notifications"],
-  ["Support", "/account/support"],
-] as const;
-
-const sellerLinks = [
-  ["Overview", "/studio-admin/overview"],
-  ["Products", "/studio-admin/products"],
-  ["Orders", "/studio-admin/orders"],
-  ["Custom orders", "/studio-admin/custom-orders"],
-  ["Customers", "/studio-admin/customers"],
-  ["Analytics", "/studio-admin/analytics"],
-  ["Payouts", "/studio-admin/payouts"],
-] as const;
-
-const adminLinks = [
-  ["Overview", "/admin/overview"],
-  ["Control center", "/admin/control-center"],
-  ["Seller applications", "/admin/sellers/applications"],
-  ["Products", "/admin/products"],
-  ["Content", "/admin/content"],
-  ["Finance", "/admin/finance"],
-  ["Support", "/admin/support"],
-  ["Security", "/admin/security"],
-] as const;
-
-export function AccountShell({
-  title,
-  eyebrow,
-  children,
-  mode = "customer",
-}: AccountShellProps): React.JSX.Element {
-  const pathname = usePathname();
-  const router = useRouter();
+export function AccountShell({ title, eyebrow, children, mode="customer" }: AccountShellProps): React.JSX.Element {
+  const pathname = usePathname(); const router = useRouter(); const [open,setOpen]=useState(false);
   const links = mode === "seller" ? sellerLinks : mode === "admin" ? adminLinks : customerLinks;
-
-  return (
-    <main className="min-h-screen w-full overflow-x-clip bg-[radial-gradient(circle_at_top_right,rgba(217,167,176,0.13),transparent_25%),radial-gradient(circle_at_left_30%,rgba(213,189,159,0.15),transparent_22%),linear-gradient(180deg,var(--color-porcelain),#f4ece9)] px-4 pb-16 pt-5 text-[var(--color-deep-onyx)] sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-7xl">
-        <header className="sticky top-3 z-40 rounded-[1.4rem] border border-[rgba(59,30,53,0.12)] bg-[rgba(248,244,240,0.86)] px-4 py-3 shadow-[var(--shadow-card)] backdrop-blur-xl sm:px-5">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <Link href="/" className="shrink-0 font-display text-xl tracking-[0.28em] text-[var(--color-deep-plum)]">SIDRA</Link>
-            <div className="flex items-center gap-2">
-              <Link href="/" className="hidden rounded-full border border-[rgba(59,30,53,0.16)] px-4 py-2 text-xs font-semibold sm:inline-flex">Storefront</Link>
-              <button
-                type="button"
-                className="rounded-full bg-[var(--color-deep-plum)] px-4 py-2 text-xs font-semibold text-[var(--color-porcelain)] transition hover:opacity-90"
-                onClick={async () => {
-                  await logout();
-                  router.replace("/");
-                }}
-              >
-                Sign out
-              </button>
-            </div>
+  const goBack = () => window.history.length > 1 ? router.back() : router.push("/");
+  return <main className="min-h-screen w-full overflow-x-clip bg-[radial-gradient(circle_at_top_right,rgba(217,167,176,.18),transparent_28%),linear-gradient(180deg,#fbf8f5,#f4ebe8)] px-4 pb-16 pt-4 text-[var(--color-deep-onyx)] sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl">
+      <header className="sticky top-3 z-40 rounded-[1.5rem] border border-[rgba(59,30,53,.12)] bg-[rgba(252,249,246,.92)] p-3 shadow-[0_20px_55px_rgba(59,30,53,.10)] backdrop-blur-xl sm:p-4">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="shrink-0 font-display text-xl tracking-[.28em] text-[var(--color-deep-plum)]">SIDRA</Link>
+          <div className="flex items-center gap-2">
+            <button onClick={goBack} className="grid h-11 w-11 place-items-center rounded-full border border-[rgba(59,30,53,.14)] bg-white" aria-label="Go back"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m15 18-6-6 6-6"/><path d="M9 12h10"/></svg></button>
+            <Link href="/" className="hidden rounded-full border border-[rgba(59,30,53,.14)] bg-white px-4 py-3 text-xs font-semibold sm:block">Home</Link>
+            <button onClick={()=>setOpen(true)} className="flex h-11 items-center gap-2 rounded-full bg-[var(--color-deep-plum)] px-4 text-xs font-semibold text-white"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>
           </div>
-          <nav className="mt-3 flex w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={`${mode} dashboard navigation`}>
-            {links.map(([label, href]) => {
-              const active = pathname === href || pathname.startsWith(`${href}/`);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition ${active ? "bg-[var(--color-dusty-rose)] text-[var(--color-deep-onyx)]" : "border border-[rgba(59,30,53,0.12)] bg-white/55 text-[var(--color-gray-700)] hover:border-[var(--color-champagne)]"}`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        </header>
+        </div>
+      </header>
 
-        <section className="py-10 sm:py-14">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[var(--color-dusty-rose)]">{eyebrow}</p>
-          <h1 className="mt-3 max-w-5xl break-words font-display text-[clamp(2.7rem,8vw,6.4rem)] leading-[0.9] text-[var(--color-deep-plum)]">{title}</h1>
-          <div className="mt-8 min-w-0">{children}</div>
-        </section>
-      </div>
-    </main>
-  );
+      {open && <div className="fixed inset-0 z-[70] bg-black/35 backdrop-blur-sm" onClick={()=>setOpen(false)}><aside className="absolute right-0 top-0 flex h-full w-[min(88vw,390px)] flex-col bg-[#fbf7f3] p-5 shadow-2xl" onClick={e=>e.stopPropagation()}>
+        <div className="flex items-center justify-between"><span className="font-display text-2xl tracking-[.22em] text-[var(--color-deep-plum)]">SIDRA</span><button onClick={()=>setOpen(false)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10" aria-label="Close menu">✕</button></div>
+        <p className="mt-8 text-[.65rem] font-semibold uppercase tracking-[.24em] text-[var(--color-dusty-rose)]">{mode === "admin" ? "Platform operating system" : mode === "seller" ? "Studio workspace" : "Your private space"}</p>
+        <nav className="mt-4 grid gap-2">{links.map(([label,href])=>{const route=href.split("#")[0];const active=pathname===route||pathname.startsWith(`${route}/`);return <Link key={href} href={href} onClick={()=>setOpen(false)} className={`flex items-center justify-between rounded-2xl px-4 py-4 text-sm font-semibold ${active?"bg-[var(--color-deep-plum)] text-white":"border border-black/8 bg-white/70"}`}><span>{label}</span><span>→</span></Link>})}</nav>
+        <div className="mt-auto grid gap-2 pt-6"><Link href="/" className="rounded-full border border-[var(--color-deep-plum)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-deep-plum)]">Back to home</Link><button onClick={async()=>{await logout();router.replace("/")}} className="rounded-full bg-[var(--color-deep-plum)] px-5 py-3 text-sm font-semibold text-white">Sign out</button></div>
+      </aside></div>}
+
+      <section className="py-9 sm:py-14"><p className="text-[.68rem] font-semibold uppercase tracking-[.24em] text-[var(--color-dusty-rose)]">{eyebrow}</p><h1 className="mt-3 max-w-5xl break-words font-display text-[clamp(2.7rem,8vw,6.2rem)] leading-[.92] text-[var(--color-deep-plum)]">{title}</h1><div className="mt-8 min-w-0">{children}</div></section>
+    </div>
+  </main>;
 }

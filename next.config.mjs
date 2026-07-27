@@ -4,6 +4,13 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   productionBrowserSourceMaps: false,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "firebasestorage.googleapis.com" },
+      { protocol: "https", hostname: "storage.googleapis.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
   experimental: {
     optimizePackageImports: ["framer-motion", "gsap"],
   },

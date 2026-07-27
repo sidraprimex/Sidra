@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { isConfiguredAdminEmail } from "@/config/adminAccess";
 import { getFirebaseServices } from "@/services/firebaseClient";
 import { subscribeToAuthState, type FirebaseUser } from "@/services/authService";
 import { ensureUserProfile, getUserProfile } from "@/services/userService";
@@ -39,12 +40,19 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
       getUserProfile(currentUser.uid),
       currentUser.getIdTokenResult(force),
     ]);
-    const claimRole = tokenResult.claims.role;
-    const role: SidraRole = typeof claimRole === "string" ? (claimRole as SidraRole) : "visitor";
+
+    const tokenRole = tokenResult.claims.role;
+    const configuredAdmin = isConfiguredAdminEmail(currentUser.email);
+    const role: SidraRole = configuredAdmin
+      ? "admin"
+      : nextProfile?.role ?? (typeof tokenRole === "string" ? (tokenRole as SidraRole) : "visitor");
+    const studioId = nextProfile?.studioId
+      ?? (typeof tokenResult.claims.studioId === "string" ? tokenResult.claims.studioId : undefined);
+
     setProfile(nextProfile);
     setClaims({
       role,
-      ...(typeof tokenResult.claims.studioId === "string" ? { studioId: tokenResult.claims.studioId } : {}),
+      ...(typeof studioId === "string" && studioId.length > 0 ? { studioId } : {}),
     });
     setLoading(false);
   }, []);
@@ -56,7 +64,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     }
     return subscribeToAuthState(
       (currentUser) => void hydrate(currentUser).catch(() => setLoading(false)),
-      () => setLoading(false)
+      () => setLoading(false),
     );
   }, [firebaseReady, hydrate]);
 
@@ -66,7 +74,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({ user, profile, claims, loading, firebaseReady, refresh }),
-    [claims, firebaseReady, loading, profile, refresh, user]
+    [claims, firebaseReady, loading, profile, refresh, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

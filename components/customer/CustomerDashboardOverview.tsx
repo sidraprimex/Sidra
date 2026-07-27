@@ -1,26 +1,7 @@
 import Link from "next/link";
 import type { CustomerDashboardSummary } from "@/types/phase9-customer";
-
-const cards = [
-  ["Active orders", "activeOrderCount", "/account/orders"],
-  ["Delivered", "deliveredOrderCount", "/account/orders"],
-  ["Custom orders", "customOrderCount", "/account/custom-orders"],
-  ["Wishlist", "wishlistCount", "/account/wishlist"],
-  ["Followed Studios", "followedStudioCount", "/studios"],
-  ["Pending reviews", "pendingReviewCount", "/account/orders"],
-] as const;
-
-export function CustomerDashboardOverview({ summary }: { readonly summary: CustomerDashboardSummary }): React.JSX.Element {
-  return <section className="grid gap-6">
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {cards.map(([label, key, href]) => <Link key={key} href={href} className="rounded-[var(--radius-lg)] border border-border bg-card p-6">
-        <p className="text-xs uppercase tracking-[0.16em] text-muted">{label}</p>
-        <p className="mt-3 font-heading text-4xl">{summary[key]}</p>
-      </Link>)}
-    </div>
-    <Link href="/account/notifications" className="rounded-[var(--radius-lg)] border border-border bg-card p-6">
-      <p className="text-xs uppercase tracking-[0.16em] text-muted">Unread notifications</p>
-      <p className="mt-3 font-heading text-4xl">{summary.unreadNotificationCount}</p>
-    </Link>
-  </section>;
-}
+const cards = [["Active orders","activeOrderCount","/account/orders","Track every order"],["Delivered","deliveredOrderCount","/account/orders","Your completed pieces"],["Custom orders","customOrderCount","/account/custom-orders","Made only for you"],["Wishlist","wishlistCount","/account/wishlist","Saved inspirations"],["Followed studios","followedStudioCount","/studios","Artists you follow"],["Notifications","unreadNotificationCount","/account/notifications","Updates waiting"]] as const;
+export function CustomerDashboardOverview({summary}:{readonly summary:CustomerDashboardSummary}):React.JSX.Element{return <section className="grid gap-6">
+  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([label,key,href,caption],index)=><Link key={key} href={href} className="group relative min-h-44 overflow-hidden rounded-[1.7rem] border border-[rgba(59,30,53,.11)] bg-white/75 p-6 shadow-[0_18px_50px_rgba(59,30,53,.07)] transition hover:-translate-y-1 hover:shadow-xl"><span className="absolute -right-5 -top-7 font-display text-8xl text-[rgba(217,167,176,.16)]">0{index+1}</span><p className="relative text-[.68rem] font-semibold uppercase tracking-[.18em] text-black/55">{label}</p><p className="relative mt-5 font-display text-5xl text-[var(--color-deep-plum)]">{summary[key]}</p><div className="relative mt-5 flex items-center justify-between text-sm text-black/55"><span>{caption}</span><span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--color-deep-plum)] text-white transition group-hover:translate-x-1">→</span></div></Link>)}</div>
+  <div className="grid gap-4 md:grid-cols-2"><Link href="/search" className="rounded-[1.7rem] bg-[var(--color-deep-plum)] p-7 text-white"><p className="text-xs uppercase tracking-[.2em] text-white/60">Discover</p><h2 className="mt-3 font-display text-3xl">Explore resin art</h2><p className="mt-2 text-sm text-white/70">Search products, collections and verified studios.</p><span className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold text-[var(--color-deep-plum)]">Open marketplace</span></Link><Link href="/account/support" className="rounded-[1.7rem] border border-[rgba(59,30,53,.12)] bg-white/75 p-7"><p className="text-xs uppercase tracking-[.2em] text-black/45">Need help?</p><h2 className="mt-3 font-display text-3xl text-[var(--color-deep-plum)]">Sidra support</h2><p className="mt-2 text-sm text-black/55">Create a ticket and track replies from your account.</p><span className="mt-6 inline-flex rounded-full border border-[var(--color-deep-plum)] px-5 py-3 text-sm font-semibold text-[var(--color-deep-plum)]">Open support</span></Link></div>
+</section>}

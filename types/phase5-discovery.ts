@@ -24,6 +24,7 @@ export interface HomepageBlock {
 
 export interface HomepageDocument {
   readonly blocks: readonly HomepageBlock[];
+  readonly backgroundImages?: readonly string[];
   readonly updatedAt?: string;
 }
 

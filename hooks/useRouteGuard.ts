@@ -11,6 +11,12 @@ interface RouteGuardOptions {
   requireStudioId?: boolean;
 }
 
+function roleIsAllowed(role: SidraRole | undefined, allowedRoles: readonly SidraRole[]): boolean {
+  if (!role) return false;
+  if (allowedRoles.includes(role)) return true;
+  return role === "admin" && allowedRoles.some((allowed) => allowed === "founder" || allowed === "superAdmin");
+}
+
 export function useRouteGuard({
   allowedRoles,
   requireVerifiedEmail = true,
@@ -30,14 +36,18 @@ export function useRouteGuard({
       router.replace(`/verify-email?next=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (allowedRoles && (!auth.claims || !allowedRoles.includes(auth.claims.role))) {
+    if (auth.profile?.status === "suspended" || auth.profile?.status === "deleted") {
+      router.replace("/not-authorized");
+      return;
+    }
+    if (allowedRoles && !roleIsAllowed(auth.claims?.role, allowedRoles)) {
       router.replace("/not-authorized");
       return;
     }
     if (requireStudioId && !auth.claims?.studioId) {
       router.replace("/not-authorized");
     }
-  }, [allowedRoles, auth.claims, auth.loading, auth.user, pathname, requireStudioId, requireVerifiedEmail, router]);
+  }, [allowedRoles, auth.claims, auth.loading, auth.profile, auth.user, pathname, requireStudioId, requireVerifiedEmail, router]);
 
   return auth;
 }
