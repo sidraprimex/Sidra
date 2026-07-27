@@ -12,7 +12,32 @@ export interface RecentlyViewedEntry {
 function readLocal(): readonly RecentlyViewedEntry[] {
   if (typeof window === "undefined") return [];
   try {
-    const value = JSON.parse(window.localStorage.getItem(LOCAL_KEY) ?? "[]") as RecentlyViewedEntry[];
+    const rawValue = window.localStorage.getItem(LOCAL_KEY);
+
+    if (!rawValue?.trim()) {
+      return [];
+    }
+
+    let value: unknown;
+
+    try {
+      value = JSON.parse(rawValue);
+    } catch {
+      window.localStorage.removeItem(LOCAL_KEY);
+      return [];
+    }
+
+    if (!Array.isArray(value)) {
+      window.localStorage.removeItem(LOCAL_KEY);
+      return [];
+    }
+
+    const entries = value.filter(
+      (item): item is RecentlyViewedEntry =>
+        Boolean(item) &&
+        typeof item === "object" &&
+        typeof (item as RecentlyViewedEntry).productId === "string",
+    );
     return Array.isArray(value) ? value.slice(0, MAX_ITEMS) : [];
   } catch {
     return [];

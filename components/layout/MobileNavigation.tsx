@@ -29,14 +29,15 @@ export function MobileNavigation({
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
-
     return () => {
       document.body.style.overflow = "";
     };
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
@@ -45,7 +46,6 @@ export function MobileNavigation({
     };
 
     window.addEventListener("keydown", closeOnEscape);
-
     return () => {
       window.removeEventListener("keydown", closeOnEscape);
     };
@@ -58,7 +58,7 @@ export function MobileNavigation({
         onClick={() => {
           setOpen(true);
         }}
-        className="inline-flex min-h-11 items-center gap-3 rounded-lg border border-gold-500/35 px-4 py-2 text-micro font-semibold uppercase tracking-[0.14em] text-gold-100"
+        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color:rgba(213,189,159,0.28)] bg-[color:rgba(28,28,28,0.48)] px-3.5 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-porcelain)] backdrop-blur-md"
         aria-expanded={open}
         aria-controls="mobile-navigation"
         aria-label="Open navigation menu"
@@ -74,18 +74,18 @@ export function MobileNavigation({
       {open ? (
         <div
           id="mobile-navigation"
-          className="fixed inset-0 z-50 overflow-y-auto bg-black-950 text-ivory-100"
+          className="fixed inset-0 z-50 overflow-y-auto bg-[var(--color-deep-onyx)] text-[var(--color-porcelain)]"
         >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-gold-500/10 blur-3xl"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(217,167,176,0.16),transparent_26%),radial-gradient(circle_at_left,rgba(213,189,159,0.12),transparent_24%)]"
           />
 
-          <div className="relative flex min-h-screen flex-col">
-            <header className="flex h-20 items-center justify-between border-b border-gold-500/20 px-5 sm:px-8">
+          <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col">
+            <header className="flex h-16 items-center justify-between border-b border-[color:rgba(213,189,159,0.16)] px-4 sm:h-20 sm:px-6">
               <Link
                 href="/"
-                className="font-display text-h3 tracking-[0.2em] text-gold-100"
+                className="font-display text-[1.15rem] tracking-[0.34em] text-[var(--color-porcelain)] sm:text-[1.35rem]"
               >
                 SIDRA
               </Link>
@@ -95,61 +95,51 @@ export function MobileNavigation({
                 onClick={() => {
                   setOpen(false);
                 }}
-                className="inline-flex min-h-11 items-center rounded-lg border border-gold-500/40 px-4 py-2 text-micro font-semibold uppercase tracking-[0.14em] text-gold-100"
+                className="inline-flex min-h-10 items-center rounded-full border border-[color:rgba(213,189,159,0.3)] px-4 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-porcelain)]"
                 aria-label="Close navigation menu"
               >
                 Close
               </button>
             </header>
 
-            <div className="flex flex-1 flex-col px-5 pb-8 pt-8 sm:px-8">
-              <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
+            <div className="flex flex-1 flex-col px-4 pb-8 pt-6 sm:px-6">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[var(--color-champagne)]">
                 Explore Sidra
               </p>
 
-              <nav
-                aria-label="Mobile navigation"
-                className="mt-6 divide-y divide-gold-500/15 border-y border-gold-500/15"
-              >
-                {items.map((item, index) => (
+              <nav aria-label="Mobile navigation" className="mt-5 space-y-3">
+                {items.map((item) => (
                   <Link
                     key={item.id}
                     href={item.href}
-                    className="group flex items-center justify-between gap-5 py-4"
+                    className="group flex items-center justify-between rounded-[1.35rem] border border-[color:rgba(213,189,159,0.14)] bg-[color:rgba(59,30,53,0.18)] px-4 py-4 transition hover:border-[color:rgba(213,189,159,0.3)] hover:bg-[color:rgba(59,30,53,0.34)]"
                   >
-                    <span className="font-display text-[clamp(2rem,9vw,3.8rem)] leading-none text-gold-100">
+                    <span className="font-display text-[clamp(1.9rem,9vw,3.2rem)] leading-none text-[var(--color-porcelain)]">
                       {item.label}
                     </span>
 
-                    <span className="flex items-center gap-3">
-                      <span className="text-micro text-gray-500">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-
-                      <span
-                        aria-hidden="true"
-                        className="text-gold-500 transition duration-base group-hover:translate-x-1"
-                      >
-                        →
-                      </span>
+                    <span
+                      aria-hidden="true"
+                      className="text-[1rem] text-[var(--color-champagne)] transition group-hover:translate-x-1"
+                    >
+                      ↗
                     </span>
                   </Link>
                 ))}
               </nav>
 
-              <div className="mt-8 rounded-lg border border-gold-500/20 bg-charcoal-800 p-5">
-                <p className="text-micro font-semibold uppercase tracking-[0.18em] text-gold-500">
+              <div className="mt-6 rounded-[1.5rem] border border-[color:rgba(213,189,159,0.16)] bg-[color:rgba(59,30,53,0.78)] p-5">
+                <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[var(--color-champagne)]">
                   Resin artists
                 </p>
 
-                <p className="mt-3 text-caption leading-6 text-gray-300">
-                  Apply for a curated Sidra Studio and build your private
-                  luxury storefront.
+                <p className="mt-3 text-sm leading-7 text-white/72">
+                  Apply for a curated Sidra Studio and build your private luxury storefront.
                 </p>
 
                 <Link
                   href="/sell-on-sidra"
-                  className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-gold-500/50 px-5 py-3 text-caption font-semibold text-gold-100"
+                  className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[color:rgba(213,189,159,0.35)] px-5 py-3 text-[0.78rem] font-semibold text-[var(--color-porcelain)]"
                 >
                   Open Your Studio
                 </Link>
@@ -157,11 +147,11 @@ export function MobileNavigation({
 
               <div className="mt-4 grid gap-3">
                 {authLoading ? (
-                  <span className="h-12 animate-pulse rounded-lg bg-ivory-100/10" />
+                  <span className="h-12 animate-pulse rounded-full bg-white/10" />
                 ) : authenticated ? (
                   <Link
                     href={accountHref}
-                    className="inline-flex min-h-12 items-center justify-center rounded-lg bg-gold-500 px-5 py-3 text-caption font-semibold text-black-950"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-dusty-rose)] px-5 py-3 text-[0.82rem] font-semibold text-[var(--color-deep-onyx)]"
                   >
                     Hello, {firstName}
                   </Link>
@@ -169,14 +159,14 @@ export function MobileNavigation({
                   <>
                     <Link
                       href="/login"
-                      className="inline-flex min-h-12 items-center justify-center rounded-lg border border-gold-500/40 px-5 py-3 text-caption font-semibold text-gold-100"
+                      className="inline-flex min-h-12 items-center justify-center rounded-full border border-[color:rgba(213,189,159,0.22)] px-5 py-3 text-[0.82rem] font-semibold text-[var(--color-porcelain)]"
                     >
                       Sign In
                     </Link>
 
                     <Link
                       href="/register"
-                      className="inline-flex min-h-12 items-center justify-center rounded-lg bg-gold-500 px-5 py-3 text-caption font-semibold text-black-950"
+                      className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-champagne)] px-5 py-3 text-[0.82rem] font-semibold text-[var(--color-deep-onyx)]"
                     >
                       Create Account
                     </Link>

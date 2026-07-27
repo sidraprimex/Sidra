@@ -1,28 +1,35 @@
 import type { FoundationContent } from "@/types/content";
-// Boot content is isolated in one registry so Phase 10 can migrate every value to Founder CMS without component rewrites.
 export const foundationContent: FoundationContent = {
   navigation: [
     { id: "home", label: "Home", href: "/", enabled: true },
     { id: "studios", label: "Studios", href: "/studios", enabled: true },
     { id: "collections", label: "Collections", href: "/collections", enabled: true },
-    { id: "journal", label: "Journal", href: "/journal", enabled: true },
     { id: "custom", label: "Custom Orders", href: "/custom-orders", enabled: true },
     { id: "about", label: "About", href: "/about", enabled: true },
     { id: "support", label: "Support", href: "/support", enabled: true }
   ],
   footer: {
-    brandLine: "A private digital home for extraordinary craft.",
+    brandLine: "A premium marketplace for handcrafted resin art, independent studios and bespoke keepsakes.",
     groups: [
-      { id: "discover", title: "Discover", links: [{ id: "studios", label: "Studios", href: "/studios" }, { id: "collections", label: "Collections", href: "/collections" }] },
-      { id: "sidra", title: "Sidra", links: [{ id: "about", label: "About", href: "/about" }, { id: "support", label: "Support", href: "/support" }] }
+      { id: "discover", title: "Discover", links: [
+        { id: "studios", label: "Studios", href: "/studios" },
+        { id: "collections", label: "Collections", href: "/collections" },
+        { id: "custom", label: "Custom Orders", href: "/custom-orders" }
+      ] },
+      { id: "legal", title: "Policies", links: [
+        { id: "privacy", label: "Privacy Policy", href: "/privacy" },
+        { id: "terms", label: "Terms & Conditions", href: "/terms" },
+        { id: "refund", label: "No-Refund Policy", href: "/no-refund-policy" },
+        { id: "shipping", label: "Shipping Policy", href: "/shipping-policy" }
+      ] }
     ],
-    legalLine: "Sidra. Crafted with restraint."
+    legalLine: `© ${new Date().getFullYear()} Sidra. All rights reserved.`
   },
-  opening: { guestLineOne: "Welcome.", guestLineTwo: "Discover Extraordinary Craftsmanship." },
+  opening: { guestLineOne: "Welcome to", guestLineTwo: "SIDRA" },
   foundation: {
-    eyebrow: "SIDRA / FOUNDATION",
-    title: "A quiet entrance to extraordinary craft.",
-    body: "The foundation is live. Studios, collections and the private discovery experience will enter only when their production phases are verified.",
-    signalOne: "Curated, never crowded.", signalTwo: "Original motion, never imitation.", signalThree: "Founder-controlled, end to end."
+    eyebrow: "SIDRA / RESIN ART MARKETPLACE",
+    title: "Extraordinary resin art, discovered beautifully.",
+    body: "Shop handcrafted pieces, explore verified studios and create bespoke resin keepsakes.",
+    signalOne: "Curated independent studios.", signalTwo: "Made-to-order craftsmanship.", signalThree: "Founder-controlled marketplace quality."
   }
 };

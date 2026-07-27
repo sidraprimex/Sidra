@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { NewsletterSignupForm } from "@/components/homepage/NewsletterSignupForm";
 import { SidraHeroExperience } from "@/components/homepage/SidraHeroExperience";
+import { LuxuryMediaWall } from "@/components/homepage/LuxuryMediaWall";
 import type { DateTimeValue } from "@/types/firestore";
 import type { JournalArticle } from "@/types/marketing";
 import type { ProductReview } from "@/types/phase9-customer";
@@ -136,43 +137,46 @@ export function HeroBlock({
   readonly block: HomepageBlock;
 }): React.JSX.Element {
   return (
-    <SidraHeroExperience
-      eyebrow={text(
-        block.data,
-        "eyebrow",
-        "The world of resin, reimagined",
-      )}
-      headline={text(
-        block.data,
-        "headline",
-        "Objects with a story",
-      )}
-      subhead={text(
-        block.data,
-        "subhead",
-        "Discover thoughtful resin work from verified Sidra Studios.",
-      )}
-      primaryCtaLabel={text(
-        block.data,
-        "primaryCtaLabel",
-        "Explore Studios",
-      )}
-      primaryCtaHref={text(
-        block.data,
-        "primaryCtaHref",
-        "/studios",
-      )}
-      secondaryCtaLabel={text(
-        block.data,
-        "secondaryCtaLabel",
-        "Browse Collections",
-      )}
-      secondaryCtaHref={text(
-        block.data,
-        "secondaryCtaHref",
-        "/collections",
-      )}
-    />
+    <>
+      <SidraHeroExperience
+        eyebrow={text(
+          block.data,
+          "eyebrow",
+          "Curated resin artistry",
+        )}
+        headline={text(
+          block.data,
+          "headline",
+          "Objects made slowly. Kept for years.",
+        )}
+        subhead={text(
+          block.data,
+          "subhead",
+          "Discover verified independent Studios creating handcrafted resin pieces across India.",
+        )}
+        primaryCtaLabel={text(
+          block.data,
+          "primaryCtaLabel",
+          "Explore Studios",
+        )}
+        primaryCtaHref={text(
+          block.data,
+          "primaryCtaHref",
+          "/studios",
+        )}
+        secondaryCtaLabel={text(
+          block.data,
+          "secondaryCtaLabel",
+          "Browse Collections",
+        )}
+        secondaryCtaHref={text(
+          block.data,
+          "secondaryCtaHref",
+          "/collections",
+        )}
+      />
+      <LuxuryMediaWall />
+    </>
   );
 }
 
@@ -194,13 +198,13 @@ export function FeaturedStudiosBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-charcoal-800 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(59,30,53,0.32)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-0 h-[32rem] w-[32rem] rounded-full bg-gold-500/5 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -270,7 +274,7 @@ export function FeaturedStudiosBlock({
                   style={{
                     backgroundImage: studio.bannerUrl
                       ? safeBackgroundImage(studio.bannerUrl)
-                      : "radial-gradient(circle at 70% 12%, rgba(200,169,106,.34), transparent 34%), linear-gradient(145deg, #241f18, #090909)",
+                      : "radial-gradient(circle at 70% 12%, rgba(213,189,159,.34), transparent 34%), linear-gradient(145deg, #3B1E35, #1C1C1C)",
                   }}
                 />
 
@@ -376,13 +380,13 @@ export function FeaturedCollectionsBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-black-950 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(28,28,28,0.36)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-40 top-0 h-[34rem] w-[34rem] rounded-full bg-gold-500/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -456,7 +460,7 @@ export function FeaturedCollectionsBlock({
                         ? safeBackgroundImage(
                             collection.imageUrl,
                           )
-                        : "radial-gradient(circle at 74% 14%, rgba(200,169,106,.34), transparent 34%), linear-gradient(145deg, #261f17, #080808)",
+                        : "radial-gradient(circle at 74% 14%, rgba(213,189,159,.34), transparent 34%), linear-gradient(145deg, #261f17, #080808)",
                     }}
                   />
 
@@ -537,13 +541,13 @@ export function SignatureCategoriesBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-charcoal-800 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(59,30,53,0.32)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 bottom-0 h-[34rem] w-[34rem] rounded-full bg-gold-500/5 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -611,7 +615,7 @@ export function SignatureCategoriesBlock({
                         ? safeBackgroundImage(
                             category.imageUrl,
                           )
-                        : "radial-gradient(circle at 72% 14%, rgba(200,169,106,.34), transparent 34%), linear-gradient(145deg, #251f18, #090909)",
+                        : "radial-gradient(circle at 72% 14%, rgba(213,189,159,.34), transparent 34%), linear-gradient(145deg, #251f18, #1C1C1C)",
                     }}
                   />
 
@@ -697,13 +701,13 @@ export function BestSellersBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-black-950 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(28,28,28,0.36)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-40 bottom-0 h-[34rem] w-[34rem] rounded-full bg-gold-500/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -782,7 +786,7 @@ export function BestSellersBlock({
                         ? safeBackgroundImage(
                             product.heroImageUrl,
                           )
-                        : "radial-gradient(circle at 72% 14%, rgba(200,169,106,.34), transparent 34%), linear-gradient(145deg, #261f17, #080808)",
+                        : "radial-gradient(circle at 72% 14%, rgba(213,189,159,.34), transparent 34%), linear-gradient(145deg, #261f17, #080808)",
                     }}
                   />
 
@@ -822,7 +826,7 @@ export function BestSellersBlock({
                       </p>
 
                       <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-2">
-                        <span className="font-display text-h2 text-gold-100">
+                        <span className="break-words font-display text-h2 text-gold-100">
                           {formatPrice(activePrice)}
                         </span>
 
@@ -880,13 +884,13 @@ export function NewArrivalsBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-charcoal-800 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(59,30,53,0.32)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 -top-20 h-[34rem] w-[34rem] rounded-full bg-gold-500/5 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -967,7 +971,7 @@ export function NewArrivalsBlock({
                         ? safeBackgroundImage(
                             product.heroImageUrl,
                           )
-                        : "radial-gradient(circle at 70% 12%, rgba(200,169,106,.34), transparent 34%), linear-gradient(145deg, #251f18, #090909)",
+                        : "radial-gradient(circle at 70% 12%, rgba(213,189,159,.34), transparent 34%), linear-gradient(145deg, #251f18, #1C1C1C)",
                     }}
                   />
 
@@ -1005,7 +1009,7 @@ export function NewArrivalsBlock({
                       </p>
 
                       <div className="mt-6 flex flex-wrap items-end gap-x-3 gap-y-2">
-                        <span className="font-display text-h2 text-gold-100">
+                        <span className="break-words font-display text-h2 text-gold-100">
                           {formatPrice(activePrice)}
                         </span>
 
@@ -1062,13 +1066,13 @@ export function CustomOrderBannerBlock({
     : "/custom-orders";
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-black-950 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(28,28,28,0.36)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 18% 28%, rgba(200,169,106,.18), transparent 26%), radial-gradient(circle at 82% 74%, rgba(122,82,45,.18), transparent 30%), linear-gradient(135deg, #070707 0%, #17120d 48%, #080808 100%)",
+            "radial-gradient(circle at 18% 28%, rgba(213,189,159,.18), transparent 26%), radial-gradient(circle at 82% 74%, rgba(122,82,45,.18), transparent 30%), linear-gradient(135deg, #070707 0%, #17120d 48%, #080808 100%)",
         }}
       />
 
@@ -1082,7 +1086,7 @@ export function CustomOrderBannerBlock({
         className="pointer-events-none absolute -right-20 bottom-0 h-96 w-96 rounded-full border border-gold-500/10 bg-gold-500/5 blur-3xl"
       />
 
-      <div className="relative mx-auto grid w-full max-w-7xl overflow-hidden rounded-lg border border-gold-500/25 bg-charcoal-800/70 shadow-modal backdrop-blur md:grid-cols-[minmax(0,1.15fr)_minmax(20rem,.85fr)]">
+      <div className="relative mx-auto grid w-full min-w-0 max-w-7xl overflow-hidden rounded-lg border border-gold-500/25 bg-charcoal-800/70 shadow-modal backdrop-blur md:grid-cols-[minmax(0,1.15fr)_minmax(20rem,.85fr)]">
         <div className="flex flex-col justify-center p-8 sm:p-12 lg:p-16">
           <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
             Personalised resin commissions
@@ -1131,7 +1135,7 @@ export function CustomOrderBannerBlock({
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 40%, rgba(244,220,172,.36), transparent 18%), radial-gradient(circle at 48% 48%, rgba(200,169,106,.24), transparent 34%), linear-gradient(145deg, #2c2116 0%, #0d0b09 58%, #050505 100%)",
+                "radial-gradient(ellipse at 50% 40%, rgba(244,220,172,.36), transparent 18%), radial-gradient(circle at 48% 48%, rgba(213,189,159,.24), transparent 34%), linear-gradient(145deg, #2c2116 0%, #0d0b09 58%, #050505 100%)",
             }}
           />
 
@@ -1207,17 +1211,17 @@ export function WhySidraBlock({
   ] as const;
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-charcoal-800 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(59,30,53,0.32)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 16% 16%, rgba(200,169,106,.12), transparent 26%), radial-gradient(circle at 88% 82%, rgba(122,82,45,.12), transparent 28%)",
+            "radial-gradient(circle at 16% 16%, rgba(213,189,159,.12), transparent 26%), radial-gradient(circle at 88% 82%, rgba(122,82,45,.12), transparent 28%)",
         }}
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -1262,7 +1266,7 @@ export function WhySidraBlock({
                       {details.eyebrow}
                     </span>
 
-                    <span className="font-display text-h2 text-gold-500/50">
+                    <span className="break-words font-display text-h2 text-gold-500/50">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                   </div>
@@ -1334,7 +1338,7 @@ export function ArtistStoriesBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-black-950 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(28,28,28,0.36)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-20 h-[34rem] w-[34rem] rounded-full bg-gold-500/10 blur-3xl"
@@ -1345,7 +1349,7 @@ export function ArtistStoriesBlock({
         className="pointer-events-none absolute -right-40 bottom-0 h-[30rem] w-[30rem] rounded-full bg-amber-900/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -1420,7 +1424,7 @@ export function ArtistStoriesBlock({
                     style={{
                       backgroundImage: studio.bannerUrl
                         ? safeBackgroundImage(studio.bannerUrl)
-                        : "radial-gradient(circle at 70% 16%, rgba(200,169,106,.30), transparent 32%), linear-gradient(145deg, #281f16, #080808)",
+                        : "radial-gradient(circle at 70% 16%, rgba(213,189,159,.30), transparent 32%), linear-gradient(145deg, #281f16, #080808)",
                     }}
                   />
 
@@ -1534,13 +1538,13 @@ export function JournalBlock({
     .slice(0, limit);
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-charcoal-800 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(59,30,53,0.32)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-40 -top-20 h-[34rem] w-[34rem] rounded-full bg-gold-500/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -1614,7 +1618,7 @@ export function JournalBlock({
                         ? safeBackgroundImage(
                             article.coverImageUrl,
                           )
-                        : "radial-gradient(circle at 72% 14%, rgba(200,169,106,.32), transparent 34%), linear-gradient(145deg, #24201a, #080808)",
+                        : "radial-gradient(circle at 72% 14%, rgba(213,189,159,.32), transparent 34%), linear-gradient(145deg, #24201a, #080808)",
                     }}
                   />
 
@@ -1672,18 +1676,18 @@ export function NewsletterBlock({
   readonly block: HomepageBlock;
 }): React.JSX.Element {
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-black-950 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(28,28,28,0.36)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(circle at 18% 20%, rgba(200,169,106,.18), transparent 28%), radial-gradient(circle at 84% 78%, rgba(122,82,45,.15), transparent 30%), linear-gradient(135deg, #070707, #17120d 52%, #070707)",
+            "radial-gradient(circle at 18% 20%, rgba(213,189,159,.18), transparent 28%), radial-gradient(circle at 84% 78%, rgba(122,82,45,.15), transparent 30%), linear-gradient(135deg, #070707, #17120d 52%, #070707)",
         }}
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
-        <div className="grid overflow-hidden rounded-lg border border-gold-500/25 bg-charcoal-800/70 shadow-modal backdrop-blur lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
+        <div className="grid w-full min-w-0 max-w-full overflow-hidden rounded-lg border border-gold-500/25 bg-charcoal-800/70 shadow-modal backdrop-blur lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
           <div className="p-8 sm:p-12 lg:p-16">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
               Private notes from Sidra
@@ -1714,7 +1718,7 @@ export function NewsletterBlock({
               className="absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(ellipse at 48% 40%, rgba(244,220,172,.34), transparent 17%), radial-gradient(circle at 50% 48%, rgba(200,169,106,.20), transparent 34%), linear-gradient(145deg, #2a2118, #090909 70%)",
+                  "radial-gradient(ellipse at 48% 40%, rgba(244,220,172,.34), transparent 17%), radial-gradient(circle at 50% 48%, rgba(213,189,159,.20), transparent 34%), linear-gradient(145deg, #2a2118, #1C1C1C 70%)",
               }}
             />
 
@@ -1724,7 +1728,7 @@ export function NewsletterBlock({
             />
 
             <div className="absolute inset-x-8 bottom-8 rounded-lg border border-gold-500/20 bg-black-950/65 p-6 backdrop-blur-md sm:inset-x-10 sm:bottom-10">
-              <p className="font-display text-h2 text-gold-100">
+              <p className="break-words font-display text-h2 text-gold-100">
                 Stories worth keeping.
               </p>
 
@@ -1788,7 +1792,7 @@ export function TestimonialsBlock({
   }
 
   return (
-    <section className="relative overflow-hidden border-t border-gold-500/15 bg-black-950 px-5 py-20 text-ivory-100 sm:px-8 lg:py-28">
+    <section className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-gold-500/15 bg-[color:rgba(28,28,28,0.36)] px-5 py-20 text-ivory-100 backdrop-blur-[2px] sm:px-8 lg:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-10 h-[34rem] w-[34rem] rounded-full bg-gold-500/10 blur-3xl"
@@ -1799,7 +1803,7 @@ export function TestimonialsBlock({
         className="pointer-events-none absolute -right-40 bottom-0 h-[30rem] w-[30rem] rounded-full bg-amber-900/10 blur-3xl"
       />
 
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative mx-auto w-full min-w-0 max-w-7xl">
         <header className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
           <div className="max-w-4xl">
             <p className="text-micro font-semibold uppercase tracking-[0.24em] text-gold-500">
@@ -1953,7 +1957,7 @@ export function EditorialBlock({
   const items = strings(block.data, "items");
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8">
+    <section className="mx-auto w-full min-w-0 max-w-7xl px-5 py-16 sm:px-8">
       <p className="text-micro font-semibold uppercase tracking-[0.18em] text-gold-600">
         {block.type.replace(/([A-Z])/g, " $1").trim()}
       </p>
@@ -1977,7 +1981,7 @@ export function EditorialBlock({
           {items.map((item) => (
             <article
               key={item}
-              className="rounded-lg border border-gray-100 bg-ivory-50 p-6 font-display text-h2"
+              className="w-full min-w-0 max-w-full break-words rounded-lg border border-gray-100 bg-ivory-50 p-5 font-display text-[clamp(2rem,10vw,4rem)] sm:p-6"
             >
               {item}
             </article>

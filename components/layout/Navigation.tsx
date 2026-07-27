@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
 import { foundationContent } from "@/cms/foundationContent";
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
@@ -45,16 +47,17 @@ function resolveFirstName(
 }
 
 export function Navigation(): React.JSX.Element {
+  const pathname = usePathname();
+  const router = useRouter();
   const { user, profile, claims, loading } = useAuth();
   const [solid, setSolid] = useState(false);
 
   useEffect(() => {
     const updateHeader = (): void => {
-      setSolid(window.scrollY > 24);
+      setSolid(window.scrollY > 18);
     };
 
     updateHeader();
-
     window.addEventListener("scroll", updateHeader, {
       passive: true,
     });
@@ -79,32 +82,49 @@ export function Navigation(): React.JSX.Element {
     (item) => item.enabled,
   );
 
+
+  const showBackButton = pathname !== "/";
+
+  const goBack = (): void => {
+    if (
+      typeof window !== "undefined" &&
+      window.history.length > 1
+    ) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
+  };
+
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-40 text-ivory-100 transition duration-slow ease-luxury ${
+      className={`fixed inset-x-0 top-0 z-40 transition duration-slow ease-luxury ${
         solid
-          ? "border-b border-gold-500/20 bg-black-950/90 shadow-card backdrop-blur-xl"
-          : "bg-gradient-to-b from-black-950/75 via-black-950/30 to-transparent"
+          ? "border-b border-[color:rgba(213,189,159,0.18)] bg-[color:rgba(28,28,28,0.88)] backdrop-blur-xl"
+          : "bg-[linear-gradient(180deg,rgba(28,28,28,0.92),rgba(28,28,28,0.42),transparent)]"
       }`}
     >
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8">
-        <Link
-          href="/"
-          aria-label="Sidra home"
-          className="relative z-10 shrink-0 font-display text-h3 tracking-[0.2em] text-gold-100 transition duration-base hover:text-gold-500"
-        >
-          SIDRA
-        </Link>
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Link
+            href="/"
+            aria-label="Sidra home"
+            className="shrink-0 font-display text-[1.15rem] tracking-[0.34em] text-[var(--color-porcelain)] transition hover:text-[var(--color-champagne)] sm:text-[1.35rem]"
+          >
+            SIDRA
+          </Link>
+        </div>
 
         <nav
           aria-label="Primary navigation"
-          className="hidden min-w-0 items-center gap-4 xl:flex"
+          className="hidden min-w-0 items-center gap-5 xl:flex"
         >
           {enabledItems.map((item) => (
             <Link
               key={item.id}
               href={item.href}
-              className="whitespace-nowrap text-micro font-semibold uppercase tracking-[0.12em] text-gray-300 transition duration-base hover:text-gold-100"
+              className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-white/72 transition hover:text-[var(--color-porcelain)]"
             >
               {item.label}
             </Link>
@@ -114,7 +134,7 @@ export function Navigation(): React.JSX.Element {
         <div className="hidden shrink-0 items-center gap-3 xl:flex">
           <Link
             href="/sell-on-sidra"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-gold-500/40 px-4 py-2 text-micro font-semibold uppercase tracking-[0.12em] text-gold-100 transition duration-base hover:border-gold-500 hover:bg-gold-500/10"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[color:rgba(213,189,159,0.35)] bg-[color:rgba(59,30,53,0.55)] px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-porcelain)] transition hover:border-[var(--color-champagne)] hover:bg-[color:rgba(59,30,53,0.84)]"
           >
             Open a Studio
           </Link>
@@ -122,12 +142,12 @@ export function Navigation(): React.JSX.Element {
           {loading ? (
             <span
               aria-label="Loading account"
-              className="h-10 w-28 animate-pulse rounded-lg bg-ivory-100/10"
+              className="h-10 w-28 animate-pulse rounded-full bg-white/10"
             />
           ) : user ? (
             <Link
               href={accountHref}
-              className="inline-flex min-h-10 max-w-40 items-center justify-center truncate rounded-lg bg-gold-500 px-4 py-2 text-micro font-semibold text-black-950 transition duration-base hover:bg-gold-100"
+              className="inline-flex min-h-10 max-w-40 items-center justify-center truncate rounded-full bg-[var(--color-dusty-rose)] px-4 py-2 text-[0.72rem] font-semibold text-[var(--color-deep-onyx)] transition hover:opacity-90"
             >
               Hello, {firstName}
             </Link>
@@ -135,14 +155,14 @@ export function Navigation(): React.JSX.Element {
             <>
               <Link
                 href="/login"
-                className="inline-flex min-h-10 items-center justify-center px-2 py-2 text-micro font-semibold uppercase tracking-[0.12em] text-gray-200 transition duration-base hover:text-gold-100"
+                className="inline-flex min-h-10 items-center justify-center px-2 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-white/78 transition hover:text-[var(--color-porcelain)]"
               >
                 Sign In
               </Link>
 
               <Link
                 href="/register"
-                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-gold-500 px-4 py-2 text-micro font-semibold text-black-950 transition duration-base hover:bg-gold-100"
+                className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-champagne)] px-4 py-2 text-[0.72rem] font-semibold text-[var(--color-deep-onyx)] transition hover:opacity-90"
               >
                 Create Account
               </Link>
@@ -150,13 +170,25 @@ export function Navigation(): React.JSX.Element {
           )}
         </div>
 
-        <MobileNavigation
-          items={enabledItems}
-          authenticated={Boolean(user)}
-          authLoading={loading}
-          accountHref={accountHref}
-          firstName={firstName}
-        />
+        <div className="flex items-center gap-2 xl:hidden">
+          {showBackButton ? (
+            <button
+              type="button"
+              onClick={goBack}
+              className="inline-flex min-h-10 items-center justify-center rounded-full border border-[color:rgba(213,189,159,0.3)] bg-[color:rgba(59,30,53,0.58)] px-3.5 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-porcelain)] backdrop-blur-xl transition hover:border-[var(--color-champagne)] hover:bg-[color:rgba(59,30,53,0.82)]"
+            >
+              Back
+            </button>
+          ) : null}
+
+          <MobileNavigation
+            items={enabledItems}
+            authenticated={Boolean(user)}
+            authLoading={loading}
+            accountHref={accountHref}
+            firstName={firstName}
+          />
+        </div>
       </div>
     </header>
   );
