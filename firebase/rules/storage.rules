@@ -1,15 +1,66 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    function signedIn() { return request.auth != null; }
-    function role() { return signedIn() ? request.auth.token.role : null; }
-    function uid() { return signedIn() ? request.auth.uid : null; }
-    function studioId() { return signedIn() ? request.auth.token.studioId : null; }
-    function founder() { return role() in ['founder', 'superAdmin']; }
-    function contentAdmin() { return role() in ['contentManager', 'marketingManager', 'founder', 'superAdmin']; }
-    function supportAdmin() { return role() in ['support', 'founder', 'superAdmin']; }
-    function ticket(ticketId) { return firestore.get(/databases/(default)/documents/supportTickets/$(ticketId)).data; }
-    function order(orderId) { return firestore.get(/databases/(default)/documents/orders/$(orderId)).data; }
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function configuredAdmin() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == "syedafsharkhadri63@gmail.com";
+    }
+
+    function role() {
+      return signedIn() && request.auth.token.role is string
+        ? request.auth.token.role
+        : null;
+    }
+
+    function uid() {
+      return signedIn() ? request.auth.uid : null;
+    }
+
+    function studioId() {
+      return signedIn() && request.auth.token.studioId is string
+        ? request.auth.token.studioId
+        : null;
+    }
+
+    function founder() {
+      return configuredAdmin()
+        || role() in ['founder', 'superAdmin', 'admin'];
+    }
+
+    function contentAdmin() {
+      return configuredAdmin()
+        || role() in [
+          'contentManager',
+          'marketingManager',
+          'founder',
+          'superAdmin',
+          'admin'
+        ];
+    }
+
+    function supportAdmin() {
+      return configuredAdmin()
+        || role() in ['support', 'founder', 'superAdmin', 'admin'];
+    }
+
+    function ticket(ticketId) {
+      return firestore.get(
+        /databases/(default)/documents/supportTickets/$(ticketId)
+      ).data;
+    }
+
+    function order(orderId) {
+      return firestore.get(
+        /databases/(default)/documents/orders/$(orderId)
+      ).data;
+    }
+
     function canAccessTicket(ticketId) {
       return signedIn() && (
         ticket(ticketId).customerId == uid()
@@ -17,24 +68,43 @@ service firebase.storage {
         || supportAdmin()
       );
     }
+
     function canAccessInvoice(orderId) {
       return signedIn() && (
         order(orderId).customerId == uid()
         || order(orderId).studioId == studioId()
-        || role() in ['financeManager', 'support', 'founder', 'superAdmin']
+        || role() in [
+          'financeManager',
+          'support',
+          'founder',
+          'superAdmin',
+          'admin'
+        ]
+        || configuredAdmin()
       );
     }
-    function ownStudio(value) { return signedIn() && studioId() != null && studioId() == value; }
+
+    function ownStudio(value) {
+      return signedIn()
+        && studioId() != null
+        && studioId() == value;
+    }
+
     function validImage(maxMb) {
       return request.resource != null
         && request.resource.size <= maxMb * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+
     function validProductMedia() {
       return request.resource != null
         && request.resource.size <= 100 * 1024 * 1024
-        && (request.resource.contentType.matches('image/.*') || request.resource.contentType.matches('video/.*'));
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('video/.*')
+        );
     }
+
     function validAttachment() {
       return request.resource != null
         && request.resource.size <= 20 * 1024 * 1024
@@ -46,39 +116,63 @@ service firebase.storage {
 
     match /studios/{ownerStudioId}/logo/{fileName} {
       allow read: if true;
-      allow write: if (ownStudio(ownerStudioId) || founder()) && validImage(10);
+      allow create, update: if (
+        ownStudio(ownerStudioId) || founder()
+      ) && validImage(10);
+      allow delete: if ownStudio(ownerStudioId) || founder();
     }
+
     match /studios/{ownerStudioId}/banner/{fileName} {
       allow read: if true;
-      allow write: if (ownStudio(ownerStudioId) || founder()) && validImage(15);
+      allow create, update: if (
+        ownStudio(ownerStudioId) || founder()
+      ) && validImage(15);
+      allow delete: if ownStudio(ownerStudioId) || founder();
     }
+
     match /studios/{ownerStudioId}/gallery/{fileName} {
       allow read: if true;
-      allow write: if (ownStudio(ownerStudioId) || founder()) && validImage(15);
+      allow create, update: if (
+        ownStudio(ownerStudioId) || founder()
+      ) && validImage(15);
+      allow delete: if ownStudio(ownerStudioId) || founder();
     }
+
     match /studios/{ownerStudioId}/products/{productId}/{fileName} {
       allow read: if true;
-      allow write: if (ownStudio(ownerStudioId) || founder()) && validProductMedia();
+      allow create, update: if (
+        ownStudio(ownerStudioId) || founder()
+      ) && validProductMedia();
+      allow delete: if ownStudio(ownerStudioId) || founder();
     }
 
     match /users/{ownerUid}/profile/{fileName} {
       allow read: if true;
-      allow write: if signedIn() && uid() == ownerUid && validImage(10);
+      allow create, update: if signedIn()
+        && uid() == ownerUid
+        && validImage(10);
+      allow delete: if signedIn() && uid() == ownerUid;
     }
 
     match /journal/{articleId}/{fileName} {
       allow read: if true;
-      allow write: if contentAdmin() && validProductMedia();
+      allow create, update: if contentAdmin()
+        && validProductMedia();
+      allow delete: if contentAdmin();
     }
 
     match /campaigns/{campaignId}/{fileName} {
       allow read: if true;
-      allow write: if contentAdmin() && validProductMedia();
+      allow create, update: if contentAdmin()
+        && validProductMedia();
+      allow delete: if contentAdmin();
     }
 
     match /support-tickets/{ticketId}/attachments/{fileName} {
       allow read: if canAccessTicket(ticketId);
-      allow write: if canAccessTicket(ticketId) && validAttachment();
+      allow create, update: if canAccessTicket(ticketId)
+        && validAttachment();
+      allow delete: if canAccessTicket(ticketId);
     }
 
     match /invoices/{orderId}/{fileName} {
@@ -87,23 +181,37 @@ service firebase.storage {
     }
 
     match /temp/{ownerUid}/{uploadSessionId}/{fileName} {
-      allow read, write: if signedIn() && uid() == ownerUid && validAttachment();
+      allow read: if signedIn()
+        && (uid() == ownerUid || founder());
+      allow create, update: if signedIn()
+        && uid() == ownerUid
+        && validAttachment();
+      allow delete: if signedIn()
+        && (uid() == ownerUid || founder());
     }
 
-    match /temp/{uid}/seller-applications/{fileName} {
-      allow read, write: if request.auth != null && request.auth.uid == uid
-        && request.resource != null && request.resource.size < 10 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*');
+    match /temp/{ownerUid}/seller-applications/{fileName} {
+      allow read: if signedIn()
+        && (uid() == ownerUid || founder());
+      allow create, update: if signedIn()
+        && uid() == ownerUid
+        && validImage(10);
+      allow delete: if signedIn()
+        && (uid() == ownerUid || founder());
+    }
+
+    match /seller-applications/{ownerUid}/{applicationId}/portfolio/{fileName} {
+      allow read: if signedIn()
+        && (uid() == ownerUid || founder());
+      allow create, update: if signedIn()
+        && uid() == ownerUid
+        && validImage(10);
+      allow delete: if signedIn()
+        && (uid() == ownerUid || founder());
     }
 
     match /{allPaths=**} {
       allow read, write: if false;
     }
   }
-
-    // PHASE_4_PRODUCT_MEDIA
-match /studios/{studioId}/products/{productId}/{allPaths=**} {
-  allow read: if true;
-  allow write: if isSellerForStudio(studioId) || isFounder();
-}
 }

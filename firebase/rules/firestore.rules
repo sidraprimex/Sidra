@@ -387,16 +387,21 @@ service cloud.firestore {
     }
 
     match /sellerApplications/{applicationId} {
-      allow read: if founder() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow read: if founder()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
       allow create: if verified()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
-        && request.resource.data.status == 'pending'
+        && request.resource.data.status == 'uploading'
         && request.resource.data.studioId == null
         && request.resource.data.slug == null
         && request.resource.data.reviewNote == null
         && request.resource.data.reviewedBy == null
         && request.resource.data.failureReason == null
+        && request.resource.data.storageProvider == 'telegram'
+        && request.resource.data.telegramChatId == null
+        && request.resource.data.telegramHeaderMessageId == null
         && request.resource.data.accessFeePaise == 0
         && request.resource.data.paymentMethod == null
         && request.resource.data.paymentReference == null
@@ -411,7 +416,10 @@ service cloud.firestore {
         && request.resource.data.state is string
         && request.resource.data.experience is string
         && request.resource.data.whyJoin is string
-        && (request.resource.data.instagram == null || request.resource.data.instagram is string)
+        && (
+          request.resource.data.instagram == null
+          || request.resource.data.instagram is string
+        )
         && request.resource.data.productCategories is list
         && request.resource.data.productCategories.size() >= 1
         && request.resource.data.productCategories.size() <= 20
@@ -419,35 +427,115 @@ service cloud.firestore {
         && request.resource.data.expectedMonthlyCapacity >= 1
         && request.resource.data.expectedMonthlyCapacity <= 100000
         && request.resource.data.portfolioImages is list
-        && request.resource.data.portfolioImages.size() >= 1
-        && request.resource.data.portfolioImages.size() <= 8
-        && request.resource.data.portfolioImages[0].path is string
-        && request.resource.data.portfolioImages[0].path.matches('^temp/' + request.auth.uid + '/seller-applications/.*$')
+        && request.resource.data.portfolioImages.size() == 0
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
         && request.resource.data.keys().hasOnly([
-          'uid', 'fullName', 'studioName', 'email', 'mobile', 'city', 'state',
-          'portfolioImages', 'instagram', 'experience', 'productCategories', 'whyJoin',
-          'expectedMonthlyCapacity', 'status', 'reviewNote', 'reviewedBy', 'studioId',
-          'slug', 'failureReason', 'accessFeePaise', 'paymentMethod', 'paymentReference',
-          'createdAt', 'updatedAt', 'reviewedAt', 'paymentSubmittedAt',
-          'paymentVerifiedAt', 'provisionedAt'
+          'uid', 'fullName', 'studioName', 'email', 'mobile', 'city',
+          'state', 'portfolioImages', 'instagram', 'experience',
+          'productCategories', 'whyJoin', 'expectedMonthlyCapacity',
+          'status', 'reviewNote', 'reviewedBy', 'studioId', 'slug',
+          'failureReason', 'storageProvider', 'telegramChatId',
+          'telegramHeaderMessageId', 'accessFeePaise',
+          'paymentMethod', 'paymentReference', 'createdAt', 'updatedAt',
+          'reviewedAt', 'paymentSubmittedAt', 'paymentVerifiedAt',
+          'provisionedAt'
         ]);
+
       allow update: if founder() || (
         verified()
         && resource.data.uid == uid()
         && request.resource.data.uid == resource.data.uid
-        && resource.data.status == 'approved'
-        && request.resource.data.status == 'paymentSubmitted'
-        && request.resource.data.paymentMethod in ['manual', 'razorpayLink']
-        && validText(request.resource.data.paymentReference, 4, 180)
-        && request.resource.data.paymentSubmittedAt == request.time
-        && request.resource.data.updatedAt == request.time
-        && changedOnly([
-          'status', 'paymentMethod', 'paymentReference',
-          'paymentSubmittedAt', 'updatedAt'
-        ])
+        && (
+          (
+            resource.data.status in ['uploading', 'submissionFailed']
+            && request.resource.data.status in [
+              'uploading',
+              'submissionFailed',
+              'pending'
+            ]
+            && request.resource.data.updatedAt == request.time
+            && changedOnly([
+              'status',
+              'portfolioImages',
+              'failureReason',
+              'storageProvider',
+              'telegramChatId',
+              'telegramHeaderMessageId',
+              'updatedAt'
+            ])
+            && request.resource.data.storageProvider == 'telegram'
+            && (
+              (
+                request.resource.data.status == 'pending'
+                && request.resource.data.failureReason == null
+                && request.resource.data.telegramChatId is string
+                && request.resource.data.telegramHeaderMessageId is int
+                && request.resource.data.portfolioImages is list
+                && request.resource.data.portfolioImages.size() >= 1
+                && request.resource.data.portfolioImages.size() <= 8
+                && request.resource.data.portfolioImages[0].provider
+                  == 'telegram'
+                && request.resource.data.portfolioImages[0].ownerUid
+                  == request.auth.uid
+                && request.resource.data.portfolioImages[0].telegramFileId
+                  is string
+                && request.resource.data.portfolioImages[0].telegramMessageId
+                  is int
+              )
+              || (
+                request.resource.data.status == 'uploading'
+                && request.resource.data.failureReason == null
+                && request.resource.data.portfolioImages is list
+                && request.resource.data.portfolioImages.size() == 0
+                && (
+                  (
+                    request.resource.data.telegramChatId == null
+                    && request.resource.data.telegramHeaderMessageId == null
+                  )
+                  || (
+                    request.resource.data.telegramChatId is string
+                    && request.resource.data.telegramHeaderMessageId is int
+                  )
+                )
+              )
+              || (
+                request.resource.data.status == 'submissionFailed'
+                && validText(
+                  request.resource.data.failureReason,
+                  1,
+                  2000
+                )
+                && request.resource.data.portfolioImages is list
+                && request.resource.data.portfolioImages.size() == 0
+              )
+            )
+          )
+          || (
+            resource.data.status == 'approved'
+            && request.resource.data.status == 'paymentSubmitted'
+            && request.resource.data.paymentMethod in [
+              'manual',
+              'razorpayLink'
+            ]
+            && validText(
+              request.resource.data.paymentReference,
+              4,
+              180
+            )
+            && request.resource.data.paymentSubmittedAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && changedOnly([
+              'status',
+              'paymentMethod',
+              'paymentReference',
+              'paymentSubmittedAt',
+              'updatedAt'
+            ])
+          )
+        )
       );
+
       allow delete: if false;
     }
 

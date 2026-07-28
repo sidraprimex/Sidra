@@ -1,6 +1,8 @@
 import type { DateTimeValue } from "@/types/firestore";
 
 export const SELLER_APPLICATION_STATUSES = [
+  "uploading",
+  "submissionFailed",
   "pending",
   "approved",
   "paymentSubmitted",
@@ -12,13 +14,25 @@ export const SELLER_APPLICATION_STATUSES = [
   "provisioningFailed",
 ] as const;
 
-export type SellerApplicationStatus = (typeof SELLER_APPLICATION_STATUSES)[number];
-export type SellerApplicationDecision = "approve" | "reject" | "requestMoreInfo" | "hold";
+export type SellerApplicationStatus =
+  (typeof SELLER_APPLICATION_STATUSES)[number];
+
+export type SellerApplicationDecision =
+  | "approve"
+  | "reject"
+  | "requestMoreInfo"
+  | "hold";
+
 export type SellerAccessPaymentMethod = "manual" | "razorpayLink";
 
 export interface SellerPortfolioImage {
   path: string;
   downloadUrl: string;
+  provider?: "firebase" | "telegram";
+  ownerUid?: string;
+  telegramFileId?: string;
+  telegramFileUniqueId?: string;
+  telegramMessageId?: number;
   fileName: string;
   contentType: string;
   size: number;
@@ -39,6 +53,11 @@ export interface SellerApplicationInput {
   expectedMonthlyCapacity: number;
 }
 
+export type SellerApplicationDraftInput = Omit<
+  SellerApplicationInput,
+  "portfolioImages"
+>;
+
 export interface SellerApplication extends SellerApplicationInput {
   id: string;
   uid: string;
@@ -48,6 +67,9 @@ export interface SellerApplication extends SellerApplicationInput {
   studioId: string | null;
   slug: string | null;
   failureReason: string | null;
+  storageProvider: "firebase" | "telegram" | null;
+  telegramChatId: string | null;
+  telegramHeaderMessageId: number | null;
   accessFeePaise: number;
   paymentMethod: SellerAccessPaymentMethod | null;
   paymentReference: string | null;
