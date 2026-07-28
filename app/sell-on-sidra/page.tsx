@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ApplicationStatusPanel } from "@/components/seller-onboarding/ApplicationStatusPanel";
 import { SellerApplicationForm } from "@/components/seller-onboarding/SellerApplicationForm";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -11,13 +12,20 @@ const applicationSteps = [
   "Create and verify your Sidra account",
   "Submit your craft, portfolio and Studio details",
   "Sidra admin reviews quality and brand fit",
-  "Approval provisions your complete Sidra Studio",
+  "Approval unlocks payment; verified payment activates your Studio",
 ] as const;
 
 export default function SellOnSidraPage(): React.JSX.Element {
+  const router = useRouter();
   const { user, profile, loading } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [hasApplication, setHasApplication] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (hasApplication === true) {
+      router.replace("/sell-on-sidra/status");
+    }
+  }, [hasApplication, router]);
 
   if (loading) {
     return (
@@ -177,6 +185,7 @@ export default function SellOnSidraPage(): React.JSX.Element {
                     email={user.email ?? ""}
                     onSubmitted={() => {
                       setSubmitted(true);
+                      router.replace("/sell-on-sidra/status?submitted=1");
                     }}
                   />
                 </div>

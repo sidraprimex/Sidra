@@ -59,7 +59,7 @@ export function SellerApplicationForm({ uid, email, onSubmitted }: Props) {
       <label className="grid gap-2 text-caption font-semibold">Why Sidra<textarea className={`${fieldClass} min-h-32 resize-y`} {...register("whyJoin")} />{errors.whyJoin?.message ? <span className="text-micro font-normal text-error">{errors.whyJoin.message}</span> : null}</label>
       <label className="grid gap-2 text-caption font-semibold">Portfolio images
         <input className={fieldClass} type="file" accept="image/*" multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 8))} />
-        <span className="text-micro font-normal text-gray-700">1–8 images, maximum 10 MB each. Files remain temporary until Founder approval.</span>
+        <span className="text-micro font-normal text-gray-700">1–8 images, maximum 10 MB each. Files remain temporary until admin approval.</span>
       </label>
     </Card>
     <Button className="w-full sm:w-auto" type="submit" loading={submitting}>Request Studio Access</Button>

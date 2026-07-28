@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { reviewSellerApplication, watchSellerApplications } from "@/services/sellerApplicationService";
+import { rejectSellerAccessPayment, reviewSellerApplication, verifySellerAccessPayment, watchSellerApplications } from "@/services/sellerApplicationService";
 import type { SellerApplication, SellerApplicationDecision } from "@/types/seller-application";
+
+function formatInr(paise: number): string {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(paise / 100);
+}
 
 export function SellerApplicationsReview() {
   const [items, setItems] = useState<SellerApplication[]>([]);
@@ -16,88 +20,36 @@ export function SellerApplicationsReview() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [working, setWorking] = useState<string | null>(null);
 
-  useEffect(
-    () => watchSellerApplications(
-      (values) => { setItems(values); setLoading(false); },
-      (caught) => { setError(caught.message); setLoading(false); },
-    ),
-    [],
-  );
+  useEffect(() => watchSellerApplications((values) => { setItems(values); setLoading(false); }, (caught) => { setError(caught.message); setLoading(false); }), []);
 
-  const pending = useMemo(
-    () => items.filter((item) => ["pending", "moreInfoRequested", "onHold", "provisioningFailed"].includes(item.status)),
-    [items],
-  );
-
-  const act = async (item: SellerApplication, decision: SellerApplicationDecision) => {
+  const decide = async (item: SellerApplication, decision: SellerApplicationDecision) => {
     const note = notes[item.id]?.trim() ?? "";
-    if (decision !== "approve" && note.length < 3) {
-      setError("Add a clear admin note before this decision.");
-      return;
-    }
-    setWorking(`${item.id}:${decision}`);
-    setError(null);
-    try {
-      await reviewSellerApplication({ applicationId: item.id, decision, note });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The decision could not be saved.");
-    } finally {
-      setWorking(null);
-    }
+    if (decision !== "approve" && note.length < 3) { setError("Add a clear admin note before this decision."); return; }
+    setWorking(`${item.id}:${decision}`); setError(null);
+    try { await reviewSellerApplication({ applicationId: item.id, decision, note }); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "The decision could not be saved."); }
+    finally { setWorking(null); }
+  };
+
+  const verify = async (item: SellerApplication) => {
+    setWorking(`${item.id}:verify`); setError(null);
+    try { await verifySellerAccessPayment(item.id, notes[item.id] ?? ""); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Payment could not be verified."); }
+    finally { setWorking(null); }
+  };
+
+  const rejectPayment = async (item: SellerApplication) => {
+    const note = notes[item.id]?.trim() ?? "";
+    if (note.length < 3) { setError("Add a reason before rejecting payment."); return; }
+    setWorking(`${item.id}:reject-payment`); setError(null);
+    try { await rejectSellerAccessPayment(item.id, note); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Payment rejection could not be saved."); }
+    finally { setWorking(null); }
   };
 
   if (loading) return <LoadingSkeleton count={4} />;
   if (error && items.length === 0) return <ErrorState message={error} />;
-  if (pending.length === 0) return <EmptyState title="No Studio requests waiting" message="New verified seller requests will appear here for admin review." />;
+  if (items.length === 0) return <EmptyState title="No Studio requests waiting" message="New seller requests, approved applications and payment submissions will appear here." />;
 
-  return (
-    <div className="grid gap-6">
-      {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      {pending.map((item) => (
-        <Card key={item.id} elevated className="grid gap-5">
-          <header className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-micro font-semibold uppercase tracking-[0.18em] text-gold-600">{item.status}</p>
-              <h2 className="mt-2 font-display text-h2">{item.studioName}</h2>
-              <p className="mt-1 text-caption text-gray-700">{item.fullName} · {item.city}, {item.state}</p>
-            </div>
-            <p className="text-caption text-gray-700">Capacity {item.expectedMonthlyCapacity}/month</p>
-          </header>
-
-          <dl className="grid gap-4 text-caption sm:grid-cols-2">
-            <div><dt className="font-semibold">Email</dt><dd className="mt-1 text-gray-700">{item.email}</dd></div>
-            <div><dt className="font-semibold">Mobile</dt><dd className="mt-1 text-gray-700">{item.mobile}</dd></div>
-            <div><dt className="font-semibold">Categories</dt><dd className="mt-1 text-gray-700">{item.productCategories.join(", ")}</dd></div>
-            <div><dt className="font-semibold">Instagram</dt><dd className="mt-1 text-gray-700">{item.instagram ?? "Not provided"}</dd></div>
-          </dl>
-
-          <section><h3 className="font-display text-h3">Craft experience</h3><p className="mt-2 whitespace-pre-wrap text-caption text-gray-700">{item.experience}</p></section>
-          <section><h3 className="font-display text-h3">Reason for joining</h3><p className="mt-2 whitespace-pre-wrap text-caption text-gray-700">{item.whyJoin}</p></section>
-          <section>
-            <h3 className="font-display text-h3">Portfolio</h3>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {item.portfolioImages.map((image) => (
-                <a key={image.path} href={image.downloadUrl} target="_blank" rel="noreferrer" className="group relative aspect-square overflow-hidden rounded-sm border border-gray-100 bg-gray-100" aria-label={`Open ${image.fileName}`}>
-                  <span className="absolute inset-0 bg-cover bg-center transition duration-base ease-luxury group-hover:scale-105" style={{ backgroundImage: `url(${image.downloadUrl})` }} />
-                  <span className="absolute inset-x-0 bottom-0 bg-black-900/70 p-2 text-micro text-ivory-50">Open image</span>
-                </a>
-              ))}
-            </div>
-          </section>
-
-          <label className="grid gap-2 text-caption font-semibold">
-            Admin review note
-            <textarea className="min-h-24 rounded-sm border border-gray-300 bg-ivory-50 p-4 text-body font-normal" value={notes[item.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))} />
-          </label>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Button loading={working === `${item.id}:approve`} onClick={() => void act(item, "approve")}>Approve & create Studio</Button>
-            <Button variant="outline" loading={working === `${item.id}:requestMoreInfo`} onClick={() => void act(item, "requestMoreInfo")}>Request more info</Button>
-            <Button variant="ghost" loading={working === `${item.id}:hold`} onClick={() => void act(item, "hold")}>Hold</Button>
-            <Button variant="danger" loading={working === `${item.id}:reject`} onClick={() => void act(item, "reject")}>Reject</Button>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
+  return <div className="grid gap-6">{error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}{items.map((item) => <Card key={item.id} elevated className="grid gap-5"><header className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-micro font-semibold uppercase tracking-[0.18em] text-gold-600">{item.status}</p><h2 className="mt-2 font-display text-h2">{item.studioName}</h2><p className="mt-1 text-caption text-gray-700">{item.fullName} · {item.city}, {item.state}</p></div><p className="text-caption text-gray-700">Capacity {item.expectedMonthlyCapacity}/month</p></header><dl className="grid gap-4 text-caption sm:grid-cols-2"><div><dt className="font-semibold">Email</dt><dd className="mt-1 text-gray-700">{item.email}</dd></div><div><dt className="font-semibold">Mobile</dt><dd className="mt-1 text-gray-700">{item.mobile}</dd></div><div><dt className="font-semibold">Categories</dt><dd className="mt-1 text-gray-700">{item.productCategories.join(", ")}</dd></div><div><dt className="font-semibold">Access fee</dt><dd className="mt-1 text-gray-700">{item.accessFeePaise > 0 ? formatInr(item.accessFeePaise) : "Not published"}</dd></div></dl><section><h3 className="font-display text-h3">Craft experience</h3><p className="mt-2 whitespace-pre-wrap text-caption text-gray-700">{item.experience}</p></section><section><h3 className="font-display text-h3">Reason for joining</h3><p className="mt-2 whitespace-pre-wrap text-caption text-gray-700">{item.whyJoin}</p></section><section><h3 className="font-display text-h3">Portfolio</h3><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{item.portfolioImages.map((image) => <a key={image.path} href={image.downloadUrl} target="_blank" rel="noreferrer" className="group relative aspect-square overflow-hidden rounded-sm border border-gray-100 bg-gray-100"><span className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${image.downloadUrl})` }} /><span className="absolute inset-x-0 bottom-0 bg-black-900/70 p-2 text-micro text-ivory-50">Open image</span></a>)}</div></section>{item.paymentReference ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-caption"><strong>Payment submitted</strong><br />Method: {item.paymentMethod}<br />Reference: {item.paymentReference}</div> : null}<label className="grid gap-2 text-caption font-semibold">Admin note<textarea className="min-h-24 rounded-sm border border-gray-300 bg-ivory-50 p-4 text-body font-normal" value={notes[item.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))} /></label>{["pending","moreInfoRequested","onHold","provisioningFailed"].includes(item.status) ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Button loading={working === `${item.id}:approve`} onClick={() => void decide(item, "approve")}>Approve for payment</Button><Button variant="outline" loading={working === `${item.id}:requestMoreInfo`} onClick={() => void decide(item, "requestMoreInfo")}>Request more info</Button><Button variant="ghost" loading={working === `${item.id}:hold`} onClick={() => void decide(item, "hold")}>Hold</Button><Button variant="danger" loading={working === `${item.id}:reject`} onClick={() => void decide(item, "reject")}>Reject</Button></div> : null}{item.status === "approved" ? <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-caption">Application approved. Waiting for the seller to submit payment.</p> : null}{item.status === "paymentSubmitted" ? <div className="grid gap-3 sm:grid-cols-2"><Button loading={working === `${item.id}:verify`} onClick={() => void verify(item)}>Verify payment & unlock Studio</Button><Button variant="danger" loading={working === `${item.id}:reject-payment`} onClick={() => void rejectPayment(item)}>Reject payment reference</Button></div> : null}</Card>)}</div>;
 }

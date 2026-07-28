@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { loginWithGoogle } from "@/services/authService";
 import { getAuthErrorMessage } from "@/utils/authErrors";
 
+function withSignal(destination: string): string {
+  return `${destination}${destination.includes("?") ? "&" : "?"}signedIn=1`;
+}
+
 export function GoogleSignInButton({
-  destination = "/search",
+  destination = "/account/dashboard",
   onError,
 }: {
   readonly destination?: string;
   readonly onError?: (message: string) => void;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   return (
@@ -27,11 +29,9 @@ export function GoogleSignInButton({
         onError?.("");
         try {
           await loginWithGoogle();
-          router.replace(`${destination}${destination.includes("?") ? "&" : "?"}signedIn=1`);
-          router.refresh();
+          window.location.assign(withSignal(destination));
         } catch (error) {
           onError?.(getAuthErrorMessage(error));
-        } finally {
           setLoading(false);
         }
       }}

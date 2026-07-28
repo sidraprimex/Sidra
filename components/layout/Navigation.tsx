@@ -9,6 +9,7 @@ import { getNavigationContent } from "@/services/cmsService";
 import type { NavigationItem } from "@/types/content";
 import { MobileNavigation } from "@/components/layout/MobileNavigation";
 import { useAuth } from "@/hooks/useAuth";
+import { logout } from "@/services/authService";
 
 const ADMIN_ROLES = new Set([
   "admin",
@@ -33,6 +34,21 @@ function resolveAccountHref(
   }
 
   return "/account/dashboard";
+}
+
+function resolveAccountLabel(
+  role: string | undefined,
+  studioId: string | undefined,
+): string {
+  if (role && ADMIN_ROLES.has(role)) {
+    return "Admin Panel";
+  }
+
+  if (role === "seller" && studioId) {
+    return "Studio Dashboard";
+  }
+
+  return "Dashboard";
 }
 
 function resolveFirstName(
@@ -76,6 +92,11 @@ export function Navigation(): React.JSX.Element {
     claims?.studioId ?? profile?.studioId ?? undefined,
   );
 
+  const accountLabel = resolveAccountLabel(
+    claims?.role ?? profile?.role,
+    claims?.studioId ?? profile?.studioId ?? undefined,
+  );
+
   const firstName = resolveFirstName(
     profile?.fullName,
     user?.displayName,
@@ -94,6 +115,12 @@ export function Navigation(): React.JSX.Element {
 
 
   const showBackButton = pathname !== "/";
+
+  const handleLogout = async (): Promise<void> => {
+    await logout();
+    router.replace("/");
+    router.refresh();
+  };
 
   const goBack = (): void => {
     if (
@@ -155,12 +182,22 @@ export function Navigation(): React.JSX.Element {
               className="h-10 w-28 animate-pulse rounded-full bg-white/10"
             />
           ) : user ? (
-            <Link
-              href={accountHref}
-              className="inline-flex min-h-10 max-w-40 items-center justify-center truncate rounded-full bg-[var(--color-dusty-rose)] px-4 py-2 text-[0.72rem] font-semibold text-[var(--color-deep-onyx)] transition hover:opacity-90"
-            >
-              Hello, {firstName}
-            </Link>
+            <>
+              <Link
+                href={accountHref}
+                className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-dusty-rose)] px-4 py-2 text-[0.72rem] font-semibold text-[var(--color-deep-onyx)] transition hover:opacity-90"
+              >
+                {accountLabel}
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[color:rgba(213,189,159,0.35)] px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[var(--color-porcelain)] transition hover:border-[var(--color-champagne)]"
+              >
+                Log out
+              </button>
+            </>
           ) : (
             <>
               <Link
@@ -196,6 +233,7 @@ export function Navigation(): React.JSX.Element {
             authenticated={Boolean(user)}
             authLoading={loading}
             accountHref={accountHref}
+            accountLabel={accountLabel}
             firstName={firstName}
           />
         </div>

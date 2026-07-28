@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { NavigationItem } from "@/types/content";
+import { logout } from "@/services/authService";
 
 interface MobileNavigationProps {
   readonly items: readonly NavigationItem[];
   readonly authenticated: boolean;
   readonly authLoading: boolean;
   readonly accountHref: string;
+  readonly accountLabel: string;
   readonly firstName: string;
 }
 
@@ -18,10 +20,19 @@ export function MobileNavigation({
   authenticated,
   authLoading,
   accountHref,
+  accountLabel,
   firstName,
 }: MobileNavigationProps): React.JSX.Element {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  const handleLogout = async (): Promise<void> => {
+    setOpen(false);
+    await logout();
+    router.replace("/");
+    router.refresh();
+  };
 
   useEffect(() => {
     setOpen(false);
@@ -149,12 +160,23 @@ export function MobileNavigation({
                 {authLoading ? (
                   <span className="h-12 animate-pulse rounded-full bg-white/10" />
                 ) : authenticated ? (
-                  <Link
-                    href={accountHref}
-                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-dusty-rose)] px-5 py-3 text-[0.82rem] font-semibold text-[var(--color-deep-onyx)]"
-                  >
-                    Hello, {firstName}
-                  </Link>
+                  <>
+                    <Link
+                      href={accountHref}
+                      aria-label={`${accountLabel} for ${firstName}`}
+                      className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-dusty-rose)] px-5 py-3 text-[0.82rem] font-semibold text-[var(--color-deep-onyx)]"
+                    >
+                      {accountLabel}
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => void handleLogout()}
+                      className="inline-flex min-h-12 items-center justify-center rounded-full border border-[color:rgba(213,189,159,0.22)] px-5 py-3 text-[0.82rem] font-semibold text-[var(--color-porcelain)]"
+                    >
+                      Log out
+                    </button>
+                  </>
                 ) : (
                   <>
                     <Link

@@ -13,6 +13,8 @@ export const defaultPaymentSettings: CheckoutPaymentSettings = {
   mode: "razorpay",
   razorpayEnabled: true,
   manualEnabled: false,
+  razorpayPaymentLink: "",
+  sellerAccessFeePaise: 0,
   upiId: "",
   accountHolderName: "",
   bankName: "",

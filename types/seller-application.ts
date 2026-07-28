@@ -3,6 +3,7 @@ import type { DateTimeValue } from "@/types/firestore";
 export const SELLER_APPLICATION_STATUSES = [
   "pending",
   "approved",
+  "paymentSubmitted",
   "rejected",
   "moreInfoRequested",
   "onHold",
@@ -13,6 +14,7 @@ export const SELLER_APPLICATION_STATUSES = [
 
 export type SellerApplicationStatus = (typeof SELLER_APPLICATION_STATUSES)[number];
 export type SellerApplicationDecision = "approve" | "reject" | "requestMoreInfo" | "hold";
+export type SellerAccessPaymentMethod = "manual" | "razorpayLink";
 
 export interface SellerPortfolioImage {
   path: string;
@@ -46,8 +48,13 @@ export interface SellerApplication extends SellerApplicationInput {
   studioId: string | null;
   slug: string | null;
   failureReason: string | null;
+  accessFeePaise: number;
+  paymentMethod: SellerAccessPaymentMethod | null;
+  paymentReference: string | null;
   createdAt: DateTimeValue;
   updatedAt: DateTimeValue;
   reviewedAt: DateTimeValue;
+  paymentSubmittedAt: DateTimeValue;
+  paymentVerifiedAt: DateTimeValue;
   provisionedAt: DateTimeValue;
 }

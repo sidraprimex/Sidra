@@ -66,7 +66,7 @@ service cloud.firestore {
 
     match /studios/{documentId} {
       allow read: if resource.data.active == true || ownStudio(documentId) || anyAdmin();
-      allow create: if false;
+      allow create: if founder();
       allow update: if founder() || (
         ownStudio(documentId)
         && request.resource.data.ownerUid == resource.data.ownerUid
@@ -397,7 +397,12 @@ service cloud.firestore {
         && request.resource.data.reviewNote == null
         && request.resource.data.reviewedBy == null
         && request.resource.data.failureReason == null
+        && request.resource.data.accessFeePaise == 0
+        && request.resource.data.paymentMethod == null
+        && request.resource.data.paymentReference == null
         && request.resource.data.reviewedAt == null
+        && request.resource.data.paymentSubmittedAt == null
+        && request.resource.data.paymentVerifiedAt == null
         && request.resource.data.provisionedAt == null
         && request.resource.data.fullName is string
         && request.resource.data.studioName is string
@@ -424,14 +429,31 @@ service cloud.firestore {
           'uid', 'fullName', 'studioName', 'email', 'mobile', 'city', 'state',
           'portfolioImages', 'instagram', 'experience', 'productCategories', 'whyJoin',
           'expectedMonthlyCapacity', 'status', 'reviewNote', 'reviewedBy', 'studioId',
-          'slug', 'failureReason', 'createdAt', 'updatedAt', 'reviewedAt', 'provisionedAt'
+          'slug', 'failureReason', 'accessFeePaise', 'paymentMethod', 'paymentReference',
+          'createdAt', 'updatedAt', 'reviewedAt', 'paymentSubmittedAt',
+          'paymentVerifiedAt', 'provisionedAt'
         ]);
-      allow update, delete: if false;
+      allow update: if founder() || (
+        verified()
+        && resource.data.uid == uid()
+        && request.resource.data.uid == resource.data.uid
+        && resource.data.status == 'approved'
+        && request.resource.data.status == 'paymentSubmitted'
+        && request.resource.data.paymentMethod in ['manual', 'razorpayLink']
+        && validText(request.resource.data.paymentReference, 4, 180)
+        && request.resource.data.paymentSubmittedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && changedOnly([
+          'status', 'paymentMethod', 'paymentReference',
+          'paymentSubmittedAt', 'updatedAt'
+        ])
+      );
+      allow delete: if false;
     }
 
     match /studioRoutes/{slug} {
       allow read: if true;
-      allow write: if false;
+      allow write: if founder();
     }
 
     match /manualPaymentRequests/{requestId} {
@@ -453,7 +475,6 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if founder();
     }
-  }
 
     // PHASE_4_PRODUCT_MANAGEMENT
 match /categories/{categoryId} {
@@ -603,4 +624,5 @@ match /loadTestRuns/{runId} {
   allow write: if false;
 }
 
+}
 }

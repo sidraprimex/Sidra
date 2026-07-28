@@ -6,6 +6,8 @@ export interface CheckoutPaymentSettings {
   readonly mode: SidraPaymentMode;
   readonly razorpayEnabled: boolean;
   readonly manualEnabled: boolean;
+  readonly razorpayPaymentLink: string;
+  readonly sellerAccessFeePaise: number;
   readonly upiId: string;
   readonly accountHolderName: string;
   readonly bankName: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AppleSignInButton } from "@/components/auth/AppleSignInButton";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -12,10 +12,13 @@ import { Button } from "@/components/ui/Button";
 import { loginWithEmail } from "@/services/authService";
 import { getAuthErrorMessage } from "@/utils/authErrors";
 
+function withSignal(destination: string): string {
+  return `${destination}${destination.includes("?") ? "&" : "?"}signedIn=1`;
+}
+
 function LoginContent() {
-  const router = useRouter();
   const params = useSearchParams();
-  const destination = params.get("next") || "/search";
+  const destination = params.get("next") || "/account/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,7 +29,7 @@ function LoginContent() {
       eyebrow="Private access"
       title="Welcome back to Sidra."
       description="Sign in to continue shopping, track orders, manage your profile, save favourites and contact support."
-      alternate={{ label: "New to Sidra?", href: "/register", action: "Create an account" }}
+      alternate={{ label: "New to Sidra?", href: `/register?next=${encodeURIComponent(destination)}`, action: "Create an account" }}
     >
       <div className="grid gap-3">
         <GoogleSignInButton destination={destination} onError={setError} />
@@ -41,12 +44,12 @@ function LoginContent() {
           setLoading(true);
           try {
             const user = await loginWithEmail(email, password);
-            const next = user.emailVerified ? destination : `/verify-email?next=${encodeURIComponent(destination)}`;
-            router.replace(`${next}${next.includes("?") ? "&" : "?"}signedIn=1`);
-            router.refresh();
+            const next = user.emailVerified
+              ? destination
+              : `/verify-email?next=${encodeURIComponent(destination)}`;
+            window.location.assign(withSignal(next));
           } catch (authError) {
             setError(getAuthErrorMessage(authError));
-          } finally {
             setLoading(false);
           }
         }}

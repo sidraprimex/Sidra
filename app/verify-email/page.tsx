@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/Button";
@@ -10,9 +10,8 @@ import { getAuthErrorMessage } from "@/utils/authErrors";
 
 function VerifyEmailContent() {
   const auth = useAuth();
-  const router = useRouter();
   const params = useSearchParams();
-  const destination = params.get("next") || "/account/overview";
+  const destination = params.get("next") || "/account/dashboard";
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,15 +23,33 @@ function VerifyEmailContent() {
         {message ? <p className="rounded-lg border border-success/35 bg-success/15 px-4 py-3 text-caption text-ivory-100">{message}</p> : null}
         {error ? <p className="rounded-lg border border-error/35 bg-error/15 px-4 py-3 text-caption text-ivory-100">{error}</p> : null}
         <Button className="w-full" variant="primary" loading={loading} disabled={!auth.user} onClick={async () => {
-          if (!auth.user) return; setLoading(true); setError("");
-          try { await refreshIdentity(auth.user); await auth.refresh(); if (auth.user.emailVerified) router.replace(destination); else setMessage("Verification is not complete yet. Open the email link, then check again."); }
-          catch (verificationError) { setError(getAuthErrorMessage(verificationError)); }
-          finally { setLoading(false); }
+          if (!auth.user) return;
+          setLoading(true);
+          setError("");
+          setMessage("");
+          try {
+            const verified = await refreshIdentity(auth.user);
+            if (verified) {
+              await auth.refresh();
+              window.location.replace(`${destination}${destination.includes("?") ? "&" : "?"}verified=1`);
+              return;
+            }
+            setMessage("Verification is not complete yet. Open the email link, then check again.");
+          } catch (verificationError) {
+            setError(getAuthErrorMessage(verificationError));
+          } finally {
+            setLoading(false);
+          }
         }}>I have verified my email</Button>
         <Button className="w-full" variant="inverseOutline" disabled={!auth.user} onClick={async () => {
-          if (!auth.user) return; setError("");
-          try { await resendVerificationEmail(auth.user); setMessage("A fresh verification email has been sent."); }
-          catch (verificationError) { setError(getAuthErrorMessage(verificationError)); }
+          if (!auth.user) return;
+          setError("");
+          try {
+            await resendVerificationEmail(auth.user);
+            setMessage("A fresh verification email has been sent.");
+          } catch (verificationError) {
+            setError(getAuthErrorMessage(verificationError));
+          }
         }}>Resend verification email</Button>
       </div>
     </AuthShell>

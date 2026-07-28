@@ -93,10 +93,11 @@ export async function resendVerificationEmail(user: User): Promise<void> {
   await sendEmailVerification(user);
 }
 
-export async function refreshIdentity(user: User): Promise<void> {
+export async function refreshIdentity(user: User): Promise<boolean> {
   await user.reload();
   await user.getIdToken(true);
   await syncEmailVerification(user);
+  return user.emailVerified;
 }
 
 export async function logout(): Promise<void> {
