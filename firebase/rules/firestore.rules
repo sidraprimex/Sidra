@@ -35,6 +35,28 @@ service cloud.firestore {
     function changedOnly(fields) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields); }
     function createdOnly(fields) { return request.resource.data.keys().hasOnly(fields); }
     function validText(value, min, max) { return value is string && value.size() >= min && value.size() <= max; }
+    function customOrderPath(orderId) { return /databases/$(database)/documents/customOrders/$(orderId); }
+    function customOrderExists(orderId) { return exists(customOrderPath(orderId)); }
+    function customOrderData(orderId) { return get(customOrderPath(orderId)).data; }
+    function customOrderParticipant(orderId) {
+      return signedIn()
+        && customOrderExists(orderId)
+        && (
+          customOrderData(orderId).customerId == uid()
+          || sameStudio(customOrderData(orderId).studioId)
+          || supportAdmin()
+        );
+    }
+    function customOrderChatOpen(orderId) {
+      return customOrderExists(orderId)
+        && customOrderData(orderId).chatUnlocked == true
+        && customOrderData(orderId).paymentStatus == 'verified'
+        && customOrderData(orderId).status in [
+          'paid', 'inProduction', 'proofReady',
+          'revisionRequested', 'approved', 'readyToShip',
+          'shipped', 'delivered', 'disputed'
+        ];
+    }
 
     match /users/{userId} {
       allow read: if ownUser(userId) || founder();
@@ -155,10 +177,158 @@ service cloud.firestore {
     match /customOrders/{requestId} {
       allow read: if signedIn() && (
         resource.data.customerId == uid()
-        || ownStudio(resource.data.assignedStudioId)
+        || ownStudio(resource.data.studioId)
         || supportAdmin()
       );
-      allow create, update, delete: if false;
+      allow create: if verified()
+        && request.resource.data.customOrderId == requestId
+        && request.resource.data.customerId == uid()
+        && validText(request.resource.data.customerName, 1, 140)
+        && validText(request.resource.data.studioId, 1, 180)
+        && validText(request.resource.data.studioName, 1, 140)
+        && exists(/databases/$(database)/documents/studios/$(request.resource.data.studioId))
+        && get(/databases/$(database)/documents/studios/$(request.resource.data.studioId)).data.active == true
+        && (
+          !('status' in get(/databases/$(database)/documents/studios/$(request.resource.data.studioId)).data)
+          || get(/databases/$(database)/documents/studios/$(request.resource.data.studioId)).data.status != 'suspended'
+        )
+        && (
+          !('contactEnabled' in get(/databases/$(database)/documents/studios/$(request.resource.data.studioId)).data)
+          || get(/databases/$(database)/documents/studios/$(request.resource.data.studioId)).data.contactEnabled != false
+        )
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.brief is map
+        && validText(request.resource.data.brief.title, 3, 140)
+        && validText(request.resource.data.brief.description, 40, 5000)
+        && validText(request.resource.data.brief.targetDeliveryDate, 8, 40)
+        && request.resource.data.quote == null
+        && request.resource.data.messages is list
+        && request.resource.data.messages.size() == 0
+        && request.resource.data.proofs is list
+        && request.resource.data.proofs.size() == 0
+        && request.resource.data.paymentStatus == 'notSubmitted'
+        && request.resource.data.paymentReference == null
+        && request.resource.data.paymentSubmittedAt == null
+        && request.resource.data.paymentVerifiedAt == null
+        && request.resource.data.paymentVerifiedBy == null
+        && request.resource.data.paymentReviewNote == null
+        && request.resource.data.chatUnlocked == false
+        && request.resource.data.linkedOrderId == null
+        && request.resource.data.timeline is list
+        && request.resource.data.timeline.size() == 1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.keys().hasOnly([
+          'customOrderId', 'customerId', 'customerName',
+          'studioId', 'studioName', 'status', 'brief', 'quote',
+          'messages', 'proofs', 'paymentStatus',
+          'paymentReference', 'paymentSubmittedAt',
+          'paymentVerifiedAt', 'paymentVerifiedBy',
+          'paymentReviewNote', 'chatUnlocked', 'linkedOrderId',
+          'timeline', 'createdAt', 'updatedAt'
+        ]);
+      allow update: if founder()
+        || (
+          verified()
+          && seller()
+          && sameStudio(resource.data.studioId)
+          && resource.data.status in [
+            'submitted', 'sellerReview', 'clarificationRequested'
+          ]
+          && request.resource.data.status == 'quoteSent'
+          && request.resource.data.quote is map
+          && validText(request.resource.data.quote.quoteId, 1, 180)
+          && request.resource.data.quote.pricePaise is int
+          && request.resource.data.quote.pricePaise > 0
+          && request.resource.data.quote.shippingPaise is int
+          && request.resource.data.quote.shippingPaise >= 0
+          && request.resource.data.quote.totalPaise
+            == request.resource.data.quote.pricePaise
+              + request.resource.data.quote.shippingPaise
+          && request.resource.data.quote.productionDays is int
+          && request.resource.data.quote.productionDays > 0
+          && request.resource.data.quote.revisionLimit is int
+          && request.resource.data.quote.revisionLimit >= 0
+          && validText(request.resource.data.quote.expiresAt, 8, 40)
+          && validText(request.resource.data.quote.terms, 20, 5000)
+          && request.resource.data.quote.acceptedAt == null
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.studioId == resource.data.studioId
+          && request.resource.data.timeline is list
+          && request.resource.data.timeline.size()
+            == resource.data.timeline.size() + 1
+          && request.resource.data.updatedAt == request.time
+          && changedOnly([
+            'status', 'quote', 'timeline', 'updatedAt'
+          ])
+        )
+        || (
+          verified()
+          && resource.data.customerId == uid()
+          && resource.data.status in ['quoteSent', 'paymentPending']
+          && request.resource.data.status == 'paymentPending'
+          && request.resource.data.paymentStatus == 'pendingVerification'
+          && validText(request.resource.data.paymentReference, 4, 180)
+          && request.resource.data.paymentSubmittedAt == request.time
+          && request.resource.data.paymentVerifiedAt == null
+          && request.resource.data.paymentVerifiedBy == null
+          && request.resource.data.paymentReviewNote == null
+          && request.resource.data.chatUnlocked == false
+          && request.resource.data.quote.pricePaise == resource.data.quote.pricePaise
+          && request.resource.data.quote.shippingPaise == resource.data.quote.shippingPaise
+          && request.resource.data.quote.totalPaise == resource.data.quote.totalPaise
+          && request.resource.data.quote.quoteId == resource.data.quote.quoteId
+          && request.resource.data.quote.acceptedAt is string
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.studioId == resource.data.studioId
+          && request.resource.data.updatedAt == request.time
+          && changedOnly([
+            'status', 'quote', 'paymentStatus',
+            'paymentReference', 'paymentSubmittedAt',
+            'paymentVerifiedAt', 'paymentVerifiedBy',
+            'paymentReviewNote', 'chatUnlocked', 'updatedAt'
+          ])
+        );
+      allow delete: if false;
+    }
+
+    match /customOrderMessages/{messageId} {
+      allow read: if supportAdmin()
+        || (
+          customOrderParticipant(resource.data.customOrderId)
+          && customOrderChatOpen(resource.data.customOrderId)
+        );
+      allow create: if verified()
+        && request.resource.data.messageId == messageId
+        && validText(request.resource.data.customOrderId, 1, 180)
+        && customOrderParticipant(request.resource.data.customOrderId)
+        && customOrderChatOpen(request.resource.data.customOrderId)
+        && request.resource.data.customerId
+          == customOrderData(request.resource.data.customOrderId).customerId
+        && request.resource.data.studioId
+          == customOrderData(request.resource.data.customOrderId).studioId
+        && request.resource.data.senderId == uid()
+        && (
+          (
+            request.resource.data.senderRole == 'customer'
+            && customOrderData(request.resource.data.customOrderId).customerId == uid()
+          )
+          || (
+            request.resource.data.senderRole == 'seller'
+            && seller()
+            && sameStudio(request.resource.data.studioId)
+          )
+        )
+        && validText(request.resource.data.body, 1, 5000)
+        && request.resource.data.attachmentUrls is list
+        && request.resource.data.attachmentUrls.size() == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly([
+          'messageId', 'customOrderId', 'customerId', 'studioId',
+          'senderId', 'senderRole', 'body', 'attachmentUrls',
+          'createdAt'
+        ]);
+      allow update, delete: if false;
     }
 
     match /reviews/{reviewId} {

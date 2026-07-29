@@ -30,6 +30,7 @@ export default function CustomOrdersPage(): React.JSX.Element {
             (studio) =>
               studio.active &&
               studio.status !== "suspended" &&
+              studio.verified &&
               studio.contactEnabled,
           ),
         );
@@ -111,8 +112,9 @@ export default function CustomOrdersPage(): React.JSX.Element {
               {[
                 "Choose a verified Studio",
                 "Submit your complete brief",
-                "Review and accept the quote",
-                "Approve the final design proof",
+                "Review the Studio quote",
+                "Pay Sidra and wait for verification",
+                "Continue in private chat and approve the proof",
               ].map((step, index) => (
                 <li
                   key={step}

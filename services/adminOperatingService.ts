@@ -25,6 +25,7 @@ const SNAPSHOT_COLLECTIONS = {
   studios: "studios",
   products: "products",
   orders: "orders",
+  customOrders: "customOrders",
   supportTickets: "supportTickets",
   sellerApplications: "sellerApplications",
   manualPaymentRequests: "manualPaymentRequests",

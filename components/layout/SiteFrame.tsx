@@ -30,11 +30,11 @@ export function SiteFrame({ children }: { children: ReactNode }) {
   if (standalone) return <>{children}</>;
 
   return (
-    <>
+    <div className="flex min-h-dvh flex-col bg-[var(--color-porcelain)]">
       {pathname === "/" ? <OpeningCinematic /> : null}
       <Navigation />
-      {children}
+      <div className="flex-1">{children}</div>
       <Footer />
-    </>
+    </div>
   );
 }

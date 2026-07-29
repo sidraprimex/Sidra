@@ -23,12 +23,20 @@ export function CustomOrderRequestForm({ studioId }: { readonly studioId: string
   const [referenceInput, setReferenceInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     setSubmitting(true);
+    setError(null);
     try {
       const result = await submitCustomOrder({ studioId, brief });
       setCreatedId(result.customOrderId);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Custom-order request could not be submitted.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -66,5 +74,6 @@ export function CustomOrderRequestForm({ studioId }: { readonly studioId: string
       <label className="grid gap-2"><span>Budget maximum (₹)</span><input type="number" min="0" onChange={(event) => setBrief({ ...brief, budgetMaxPaise: event.target.value ? Math.round(Number(event.target.value) * 100) : null })} className="rounded-[var(--radius-md)] border border-border bg-card px-4 py-3" /></label>
     </div>
     <button disabled={submitting} className="justify-self-start rounded-[var(--radius-md)] bg-[var(--color-gold-600)] px-6 py-3 text-white disabled:opacity-50">{submitting ? "Submitting…" : "Submit custom request"}</button>
+    {error ? <p className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p> : null}
   </form>;
 }

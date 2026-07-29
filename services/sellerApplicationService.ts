@@ -705,15 +705,21 @@ export async function verifySellerAccessPayment(
       name: application.studioName,
       slug,
       description: application.whyJoin,
+      story: application.whyJoin,
       logoUrl: null,
       bannerUrl: null,
       galleryUrls: application.portfolioImages
         .map((image) => image.downloadUrl)
         .filter((value) => value.length > 0),
       category: application.productCategories[0] ?? null,
+      categories: application.productCategories,
+      location: [application.city, application.state]
+        .filter((value) => value.trim().length > 0)
+        .join(", "),
       followerCount: 0,
       rating: 0,
       reviewCount: 0,
+      productCount: 0,
       totalOrders: 0,
       revenueTotal: 0,
       subscriptionTier: "starter",
@@ -721,9 +727,12 @@ export async function verifySellerAccessPayment(
       subscriptionMonthlyFeePaise: 0,
       commissionRateBasisPoints: 1200,
       subscriptionStatus: "commission",
-      verificationBadge: "verifiedSeller",
+      verificationBadge: "verified",
+      verified: true,
       featured: false,
       active: true,
+      status: "active",
+      contactEnabled: true,
       provisioningState: "complete",
       seo: {
         title: application.studioName,

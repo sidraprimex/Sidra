@@ -32,13 +32,29 @@ export function isCustomOrderTransitionAllowed(
 }
 
 export function canCustomerPayCustomOrder(status: CustomOrderStatus): boolean {
-  return status === "quoteAccepted" || status === "paymentPending";
+  return status === "quoteSent" || status === "quoteAccepted" || status === "paymentPending";
 }
 
 export function canSellerSendQuote(status: CustomOrderStatus): boolean {
-  return status === "sellerReview" || status === "clarificationRequested";
+  return status === "submitted" || status === "sellerReview" || status === "clarificationRequested";
 }
 
 export function canSubmitProof(status: CustomOrderStatus): boolean {
   return status === "inProduction" || status === "revisionRequested";
+}
+
+export function isCustomOrderChatUnlocked(
+  status: CustomOrderStatus,
+): boolean {
+  return [
+    "paid",
+    "inProduction",
+    "proofReady",
+    "revisionRequested",
+    "approved",
+    "readyToShip",
+    "shipped",
+    "delivered",
+    "disputed",
+  ].includes(status);
 }

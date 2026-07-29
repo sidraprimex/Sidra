@@ -26,6 +26,7 @@ export interface AdminSnapshot {
   readonly studios: readonly AdminRecord[];
   readonly products: readonly AdminRecord[];
   readonly orders: readonly AdminRecord[];
+  readonly customOrders: readonly AdminRecord[];
   readonly supportTickets: readonly AdminRecord[];
   readonly sellerApplications: readonly AdminRecord[];
   readonly manualPaymentRequests: readonly AdminRecord[];

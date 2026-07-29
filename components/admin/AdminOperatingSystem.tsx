@@ -20,6 +20,7 @@ import {
 } from "@/services/manualPaymentReviewService";
 import { reviewSellerSubscriptionRequest } from "@/services/sellerSubscriptionService";
 import { reviewSellerWithdrawal } from "@/services/sellerWithdrawalService";
+import { reviewCustomOrderPayment } from "@/services/customOrderPaymentReviewService";
 import type { AdminRecord, AdminSnapshot, AdminWorkspaceTab } from "@/types/admin-os";
 
 const tabs: readonly { readonly id: AdminWorkspaceTab; readonly label: string; readonly description: string }[] = [
@@ -69,6 +70,7 @@ function recordTitle(collectionName: string, record: AdminRecord): string {
   if (collectionName === "studios") return text(record, "name", "studioName");
   if (collectionName === "products") return text(record, "name", "productName");
   if (collectionName === "orders") return text(record, "orderNumber", "orderId");
+  if (collectionName === "customOrders") return `Custom order · ${text(record, "studioName", "customOrderId")}`;
   if (collectionName === "supportTickets") return text(record, "subject", "ticketId");
   if (collectionName === "manualPaymentRequests") return `Manual payment ${record.id.slice(0, 8)}`;
   if (collectionName === "sellerApplications") return text(record, "studioName", "fullName");
@@ -83,6 +85,7 @@ function recordSubtitle(collectionName: string, record: AdminRecord): string {
   if (collectionName === "studios") return `${text(record, "slug")} · ${bool(record, "active") ? "Active" : "Suspended"}`;
   if (collectionName === "products") return `${text(record, "status")} · Studio ${text(record, "studioId")}`;
   if (collectionName === "orders") return `${text(record, "orderStatus", "status")} · ${text(record, "paymentStatus")}`;
+  if (collectionName === "customOrders") return `${text(record, "status")} · ${text(record, "paymentStatus")} · ₹${Number((record.data.quote as { totalPaise?: unknown } | null)?.totalPaise ?? 0) / 100}`;
   if (collectionName === "supportTickets") return `${text(record, "category")} · ${text(record, "status")}`;
   if (collectionName === "manualPaymentRequests") return `${text(record, "status")} · ₹${Number(record.data.totalPaise ?? 0) / 100}`;
   if (collectionName === "sellerApplications") return `${text(record, "status")} · ${text(record, "email")}`;
@@ -167,6 +170,127 @@ export function AdminOperatingSystem(): React.JSX.Element {
   const liveProducts = snapshot.products.filter((item) => item.data.status === "published").length;
   const pendingManual = snapshot.manualPaymentRequests.filter((item) => item.data.status === "pendingVerification").length;
 
+  const renderCustomOrderPayments = () => {
+    const records = snapshot.customOrders.filter(
+      (record) =>
+        record.data.paymentStatus !== "notSubmitted" &&
+        record.data.paymentStatus != null,
+    );
+    return (
+      <section className="grid gap-4">
+        <h3 className="font-display text-3xl">
+          Custom-order payment verification
+        </h3>
+        {records.length === 0 ? (
+          <Card elevated>
+            <p className="text-sm text-gray-700">
+              No custom-order payment references yet.
+            </p>
+          </Card>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {records.map((record) => {
+              const quote = record.data.quote as {
+                totalPaise?: unknown;
+              } | null;
+              const pending =
+                record.data.paymentStatus ===
+                "pendingVerification";
+              return (
+                <Card key={record.id} elevated>
+                  <p className="font-display text-2xl text-[var(--color-deep-plum)]">
+                    ₹{Number(quote?.totalPaise ?? 0) / 100}
+                  </p>
+                  <p className="mt-2 text-xs leading-6 text-gray-700">
+                    Studio: {text(record, "studioName")}
+                    <br />
+                    Buyer: {text(record, "customerName")}
+                    <br />
+                    UTR: {text(record, "paymentReference")}
+                    <br />
+                    Status: {text(record, "paymentStatus")}
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <Button
+                      disabled={!pending}
+                      loading={
+                        busyKey ===
+                        `custom-payment:${record.id}`
+                      }
+                      onClick={async () => {
+                        setBusyKey(
+                          `custom-payment:${record.id}`,
+                        );
+                        setMessage(null);
+                        try {
+                          await reviewCustomOrderPayment({
+                            customOrderId: record.id,
+                            adminUid: actorUid,
+                            decision: "verified",
+                          });
+                          setMessage(
+                            "Custom-order payment verified. Buyer–Studio chat unlocked.",
+                          );
+                          await reload();
+                        } catch (caught) {
+                          setMessage(
+                            caught instanceof Error
+                              ? caught.message
+                              : "Payment could not be verified.",
+                          );
+                        } finally {
+                          setBusyKey(null);
+                        }
+                      }}
+                    >
+                      Verify & unlock chat
+                    </Button>
+                    <Button
+                      variant="danger"
+                      disabled={!pending}
+                      onClick={async () => {
+                        const note =
+                          window.prompt("Rejection reason") ??
+                          "";
+                        if (!note.trim()) return;
+                        setBusyKey(
+                          `custom-payment:${record.id}`,
+                        );
+                        setMessage(null);
+                        try {
+                          await reviewCustomOrderPayment({
+                            customOrderId: record.id,
+                            adminUid: actorUid,
+                            decision: "rejected",
+                            note,
+                          });
+                          setMessage(
+                            "Custom-order payment rejected. Chat remains locked.",
+                          );
+                          await reload();
+                        } catch (caught) {
+                          setMessage(
+                            caught instanceof Error
+                              ? caught.message
+                              : "Payment could not be rejected.",
+                          );
+                        } finally {
+                          setBusyKey(null);
+                        }
+                      }}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    );
+  };
+
   const renderRecords = (collectionName: keyof AdminSnapshot, title: string, description: string) => {
     const records = snapshot[collectionName].filter((record) => searchRecord(record, collectionName, search));
     return <div className="grid gap-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[var(--color-dusty-rose)]">{description}</p><h2 className="mt-2 font-display text-5xl text-[var(--color-deep-plum)]">{title}</h2></div><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${title.toLowerCase()}`} className="w-full rounded-full border border-black/10 bg-white px-5 py-3 sm:max-w-sm" /></div>{records.length === 0 ? <Card elevated><p className="text-sm text-gray-700">No matching records.</p></Card> : <div className="grid gap-4 lg:grid-cols-2">{records.map((record) => {
@@ -194,7 +318,7 @@ export function AdminOperatingSystem(): React.JSX.Element {
   if (tab === "overview") workspace = renderOverview();
   else if (tab === "search") workspace = renderSearch();
   else if (selectedCollection) workspace = renderRecords(selectedCollection, tabs.find((item) => item.id === tab)?.label ?? tab, tabs.find((item) => item.id === tab)?.description ?? "");
-  else if (tab === "support") workspace = renderSupport();
+  else if (tab === "support") workspace = <div className="grid gap-8">{renderSupport()}{renderCustomOrderPayments()}</div>;
   else if (["content", "appearance", "payments"].includes(tab)) workspace = <AdminCmsWorkspace actorUid={actorUid} tab={tab} />;
   else workspace = renderOverview();
 

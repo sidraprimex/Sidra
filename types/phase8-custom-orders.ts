@@ -19,6 +19,12 @@ export type CustomOrderStatus =
   | "disputed"
   | "refunded";
 
+export type CustomOrderPaymentStatus =
+  | "notSubmitted"
+  | "pendingVerification"
+  | "verified"
+  | "rejected";
+
 export interface CustomOrderBrief {
   readonly title: string;
   readonly description: string;
@@ -51,7 +57,7 @@ export interface CustomOrderMessage {
   readonly senderRole: "customer" | "seller" | "founder" | "support";
   readonly body: string;
   readonly attachmentUrls: readonly string[];
-  readonly createdAt: string;
+  readonly createdAt: unknown;
 }
 
 export interface CustomOrderProof {
@@ -75,9 +81,16 @@ export interface CustomOrder {
   readonly quote: CustomOrderQuote | null;
   readonly messages: readonly CustomOrderMessage[];
   readonly proofs: readonly CustomOrderProof[];
+  readonly paymentStatus: CustomOrderPaymentStatus;
+  readonly paymentReference: string | null;
+  readonly paymentSubmittedAt: unknown;
+  readonly paymentVerifiedAt: unknown;
+  readonly paymentVerifiedBy: string | null;
+  readonly paymentReviewNote: string | null;
+  readonly chatUnlocked: boolean;
   readonly linkedOrderId: string | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  readonly createdAt: unknown;
+  readonly updatedAt: unknown;
 }
 
 export interface SubmitCustomOrderInput {
