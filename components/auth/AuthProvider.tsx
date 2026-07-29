@@ -34,12 +34,20 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
       return;
     }
 
-    await currentUser.reload();
-    await ensureUserProfile(currentUser);
-    const [nextProfile, tokenResult] = await Promise.all([
+    if (force) {
+      await currentUser.reload();
+    }
+
+    const [initialProfile, tokenResult] = await Promise.all([
       getUserProfile(currentUser.uid),
       currentUser.getIdTokenResult(force),
     ]);
+    let nextProfile = initialProfile;
+
+    if (!nextProfile) {
+      await ensureUserProfile(currentUser);
+      nextProfile = await getUserProfile(currentUser.uid);
+    }
 
     const tokenRole = tokenResult.claims.role;
     const configuredAdmin = isConfiguredAdminEmail(currentUser.email);

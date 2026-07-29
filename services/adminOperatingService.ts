@@ -28,6 +28,8 @@ const SNAPSHOT_COLLECTIONS = {
   supportTickets: "supportTickets",
   sellerApplications: "sellerApplications",
   manualPaymentRequests: "manualPaymentRequests",
+  sellerSubscriptionRequests: "sellerSubscriptionRequests",
+  payouts: "payouts",
   auditLogs: "adminAuditLogs",
 } as const;
 

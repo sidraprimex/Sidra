@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SellerPortfolioPreview } from "@/components/telegram/SellerPortfolioPreview";
+import { UpiPaymentQr } from "@/components/payments/UpiPaymentQr";
 import { useAuth } from "@/hooks/useAuth";
 import { getCheckoutPaymentSettings } from "@/services/paymentConfigurationService";
 import {
@@ -364,7 +365,8 @@ export function ApplicationStatusPanel({
           ) : null}
 
           {manualAvailable ? (
-            <div className="mt-6 rounded-2xl border border-black/10 bg-white/70 p-5">
+            <div className="mt-6 grid gap-5 rounded-2xl border border-black/10 bg-white/70 p-5 md:grid-cols-[1fr_auto]">
+              <div>
               <p className="font-semibold">Manual UPI / bank transfer</p>
               <dl className="mt-4 grid gap-3 text-caption sm:grid-cols-2">
                 <div>
@@ -398,6 +400,9 @@ export function ApplicationStatusPanel({
                   {settings.instructions}
                 </p>
               ) : null}
+              <p className="mt-4 text-sm text-gray-700">Payment support: <strong>{settings?.supportContact || "9019254743"}</strong></p>
+              </div>
+              <UpiPaymentQr upiId={settings?.upiId || "tradewithsyed@ybl"} payeeName={settings?.accountHolderName || "Sidra"} amountPaise={fee} reference={`Sidra seller ${application.id}`} />
             </div>
           ) : null}
 

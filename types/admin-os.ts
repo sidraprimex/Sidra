@@ -11,6 +11,8 @@ export type AdminWorkspaceTab =
   | "content"
   | "appearance"
   | "payments"
+  | "subscriptions"
+  | "payouts"
   | "database"
   | "audit";
 
@@ -27,6 +29,8 @@ export interface AdminSnapshot {
   readonly supportTickets: readonly AdminRecord[];
   readonly sellerApplications: readonly AdminRecord[];
   readonly manualPaymentRequests: readonly AdminRecord[];
+  readonly sellerSubscriptionRequests: readonly AdminRecord[];
+  readonly payouts: readonly AdminRecord[];
   readonly auditLogs: readonly AdminRecord[];
 }
 

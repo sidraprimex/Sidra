@@ -10,7 +10,7 @@
     "lint": "eslint src --ext .ts",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "test": "npm run build && node --test lib/*.test.js"
+    "test": "npm run build && vitest run --config vitest.config.ts && node --test lib/cmsDefaults.test.js lib/launchReadinessPolicy.test.js lib/sellerProvisioningCore.test.js"
   },
   "dependencies": {
     "firebase-admin": "^13.4.0",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "typescript": "^5.9.2",
-    "@types/node": "^22.18.0"
+    "@types/node": "^22.18.0",
+    "vitest": "^3.2.4"
   }
 }

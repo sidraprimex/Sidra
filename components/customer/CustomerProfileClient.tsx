@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { AccountShell } from "@/components/account/AccountShell";
@@ -70,6 +71,7 @@ export function CustomerProfileClient(): React.JSX.Element {
     useState("");
   const [addressMessage, setAddressMessage] =
     useState("");
+  const hydratedUid = useRef<string | null>(null);
 
   const storageKey = useMemo(
     () =>
@@ -84,6 +86,11 @@ export function CustomerProfileClient(): React.JSX.Element {
       return;
     }
 
+    if (hydratedUid.current === auth.user.uid) {
+      return;
+    }
+
+    hydratedUid.current = auth.user.uid;
     setFullName(auth.profile.fullName);
     setPhone(auth.profile.phone ?? "");
 
@@ -123,6 +130,7 @@ export function CustomerProfileClient(): React.JSX.Element {
           fullName: normalizedName,
           phone: phone.trim() || null,
           profilePhoto:
+            photo ??
             auth.profile!.profilePhoto ??
             auth.user!.photoURL ??
             null,

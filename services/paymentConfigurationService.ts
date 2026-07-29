@@ -10,25 +10,44 @@ import type { CheckoutDraft, CustomerCart } from "@/types/phase6-commerce";
 import type { CheckoutPaymentSettings } from "@/types/payment-settings";
 
 export const defaultPaymentSettings: CheckoutPaymentSettings = {
-  mode: "razorpay",
-  razorpayEnabled: true,
-  manualEnabled: false,
+  mode: "manual",
+  razorpayEnabled: false,
+  manualEnabled: true,
   razorpayPaymentLink: "",
   sellerAccessFeePaise: 0,
-  upiId: "",
-  accountHolderName: "",
+  upiId: "tradewithsyed@ybl",
+  accountHolderName: "Sidra",
   bankName: "",
   accountNumber: "",
   ifsc: "",
   instructions: "",
-  supportContact: "",
+  supportContact: "9019254743",
 };
 
 export async function getCheckoutPaymentSettings(): Promise<CheckoutPaymentSettings> {
   const { db } = requireFirebaseServices();
   const snapshot = await getDoc(doc(db, "settings", "payments"));
   if (!snapshot.exists()) return defaultPaymentSettings;
-  return { ...defaultPaymentSettings, ...(snapshot.data() as Partial<CheckoutPaymentSettings>) };
+  const stored = snapshot.data() as Partial<CheckoutPaymentSettings>;
+  const razorpayEnabled = stored.razorpayEnabled === true;
+  return {
+    ...defaultPaymentSettings,
+    ...stored,
+    mode:
+      stored.mode === "disabled"
+        ? "disabled"
+        : razorpayEnabled
+          ? "hybrid"
+          : "manual",
+    manualEnabled: true,
+    upiId: stored.upiId?.trim() || defaultPaymentSettings.upiId,
+    accountHolderName:
+      stored.accountHolderName?.trim() ||
+      defaultPaymentSettings.accountHolderName,
+    supportContact:
+      stored.supportContact?.trim() ||
+      defaultPaymentSettings.supportContact,
+  };
 }
 
 export async function createManualPaymentRequest(input: {

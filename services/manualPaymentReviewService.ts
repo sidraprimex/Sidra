@@ -1,0 +1,228 @@
+import {
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  writeBatch,
+} from "firebase/firestore";
+import { requireFirebaseServices } from "@/services/firebaseClient";
+import type { CartLineItem, ShippingAddress } from "@/types/phase6-commerce";
+
+interface ManualRequestRecord {
+  customerId: string;
+  addressId: string;
+  items: readonly CartLineItem[];
+  subtotalPaise: number;
+  shippingPaise: number;
+  totalPaise: number;
+  paymentReference: string;
+  status: string;
+}
+
+interface ProductCostingRecord {
+  makingCostPaise?: number;
+  sellerShippingCostPaise?: number;
+}
+
+function orderNumber(index: number): string {
+  return `SDR-${Date.now().toString(36).toUpperCase()}-${String(index + 1).padStart(2, "0")}`;
+}
+
+export async function verifyManualMarketplacePayment(
+  requestId: string,
+  adminUid: string,
+): Promise<readonly string[]> {
+  const { db } = requireFirebaseServices();
+  const requestRef = doc(db, "manualPaymentRequests", requestId);
+  const requestSnapshot = await getDoc(requestRef);
+
+  if (!requestSnapshot.exists()) throw new Error("Payment request not found.");
+  const paymentRequest = requestSnapshot.data() as ManualRequestRecord;
+  if (paymentRequest.status !== "pendingVerification") {
+    throw new Error("This payment request has already been reviewed.");
+  }
+  if (!Array.isArray(paymentRequest.items) || paymentRequest.items.length === 0) {
+    throw new Error("The payment request does not contain any products.");
+  }
+
+  const addressSnapshot = await getDoc(doc(db, "addressBooks", paymentRequest.customerId));
+  const addresses = addressSnapshot.data()?.addresses;
+  const address = Array.isArray(addresses)
+    ? addresses.find((item) => item?.id === paymentRequest.addressId) as ShippingAddress | undefined
+    : undefined;
+  if (!address) throw new Error("Customer delivery address is missing.");
+
+  const customerSnapshot = await getDoc(doc(db, "users", paymentRequest.customerId));
+  if (!customerSnapshot.exists()) throw new Error("Customer profile is missing.");
+  const customer = customerSnapshot.data();
+
+  const costEntries = await Promise.all(
+    paymentRequest.items.map(async (item) => {
+      const snapshot = await getDoc(doc(db, "productCostings", item.productId));
+      return [item.productId, snapshot.exists() ? snapshot.data() as ProductCostingRecord : {}] as const;
+    }),
+  );
+  const costByProduct = new Map(costEntries);
+  const byStudio = new Map<string, CartLineItem[]>();
+  for (const item of paymentRequest.items) {
+    byStudio.set(item.studioId, [...(byStudio.get(item.studioId) ?? []), item]);
+  }
+
+  const batch = writeBatch(db);
+  const orderIds: string[] = [];
+  let studioIndex = 0;
+
+  for (const [studioId, items] of byStudio) {
+    const orderRef = doc(collection(db, "orders"));
+    const studioSnapshot = await getDoc(doc(db, "studios", studioId));
+    const studio = studioSnapshot.data() ?? {};
+    const subtotalPaise = items.reduce(
+      (sum, item) => sum + item.unitPricePaise * item.quantity,
+      0,
+    );
+    const shippingPaise = 9900;
+    const sellerCostPaise = items.reduce((sum, item) => {
+      const cost = costByProduct.get(item.productId);
+      return sum + (
+        Number(cost?.makingCostPaise ?? 0) +
+        Number(cost?.sellerShippingCostPaise ?? 0)
+      ) * item.quantity;
+    }, 0);
+    const profitPaise = Math.max(0, subtotalPaise - sellerCostPaise);
+    const timeline = [{
+      id: crypto.randomUUID(),
+      status: "placed",
+      label: "Payment verified and order confirmed",
+      actorId: adminUid,
+      actorRole: "admin",
+      reason: null,
+      createdAt: new Date().toISOString(),
+      customerVisible: true,
+    }];
+
+    batch.set(orderRef, {
+      orderId: orderRef.id,
+      orderNumber: orderNumber(studioIndex),
+      customerId: paymentRequest.customerId,
+      customerName: String(customer.fullName ?? "Customer"),
+      customerEmail: String(customer.email ?? ""),
+      customerPhone: String(customer.phone ?? address.phone),
+      studioId,
+      studioName: items[0]?.studioName ?? String(studio.name ?? "Sidra Studio"),
+      sellerUid: studio.ownerUid ?? null,
+      lineItems: items.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        name: item.productName,
+        qty: item.quantity,
+        unitPrice: item.unitPricePaise,
+        subtotal: item.unitPricePaise * item.quantity,
+      })),
+      orderStatus: "placed",
+      paymentStatus: "paid",
+      subtotalPaise,
+      shippingPaise,
+      totalPaise: subtotalPaise + shippingPaise,
+      sellerCostPaise,
+      profitPaise,
+      subscriptionPlan: studio.subscriptionPlan ?? "commission",
+      commissionRateBasisPoints: Number(studio.commissionRateBasisPoints ?? 1200),
+      manualPaymentRequestId: requestId,
+      paymentReference: paymentRequest.paymentReference,
+      shippingAddress: address,
+      shippingPackage: null,
+      invoiceUrl: "",
+      customOrderId: null,
+      timeline,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    const advanceRef = doc(db, "payouts", `advance-${orderRef.id}`);
+    batch.set(advanceRef, {
+      payoutId: advanceRef.id,
+      orderId: orderRef.id,
+      studioId,
+      sellerUid: studio.ownerUid ?? null,
+      type: "productionAdvance",
+      grossPaise: sellerCostPaise,
+      commissionPaise: 0,
+      sellerAmountPaise: sellerCostPaise,
+      status: "pending",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    if (studio.ownerUid) {
+      const notificationRef = doc(collection(db, "notifications"));
+      batch.set(notificationRef, {
+        recipientUid: studio.ownerUid,
+        type: "newOrder",
+        title: "New paid order received",
+        body: `${items[0]?.studioName ?? "Your Studio"} received order ${orderRef.id.slice(0, 8)}.`,
+        actionUrl: `/studio-admin/orders/${orderRef.id}`,
+        read: false,
+        studioId,
+        orderId: orderRef.id,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    orderIds.push(orderRef.id);
+    studioIndex += 1;
+  }
+
+  const paymentRef = doc(collection(db, "payments"));
+  batch.set(paymentRef, {
+    paymentId: paymentRef.id,
+    orderIds,
+    orderId: orderIds[0] ?? null,
+    customerId: paymentRequest.customerId,
+    gateway: "manualUpi",
+    amount: paymentRequest.totalPaise,
+    currency: "INR",
+    status: "succeeded",
+    gatewayTransactionId: paymentRequest.paymentReference,
+    manualPaymentRequestId: requestId,
+    verifiedBy: adminUid,
+    createdAt: serverTimestamp(),
+  });
+  batch.update(requestRef, {
+    status: "verified",
+    verifiedBy: adminUid,
+    orderIds,
+    updatedAt: serverTimestamp(),
+  });
+  await batch.commit();
+  return orderIds;
+}
+
+export async function rejectManualMarketplacePayment(
+  requestId: string,
+  adminUid: string,
+): Promise<void> {
+  const { db } = requireFirebaseServices();
+  const requestRef = doc(db, "manualPaymentRequests", requestId);
+  const snapshot = await getDoc(requestRef);
+  if (!snapshot.exists()) throw new Error("Payment request not found.");
+  if (snapshot.data().status !== "pendingVerification") {
+    throw new Error("This payment request has already been reviewed.");
+  }
+  const batch = writeBatch(db);
+  batch.update(requestRef, {
+    status: "rejected",
+    verifiedBy: adminUid,
+    updatedAt: serverTimestamp(),
+  });
+  const notificationRef = doc(collection(db, "notifications"));
+  batch.set(notificationRef, {
+    recipientUid: snapshot.data().customerId,
+    type: "paymentRejected",
+    title: "Payment verification needs attention",
+    body: "Your payment reference could not be verified. Contact Sidra support or submit the correct UTR.",
+    actionUrl: "/account/support",
+    read: false,
+    createdAt: serverTimestamp(),
+  });
+  await batch.commit();
+}

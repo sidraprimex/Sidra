@@ -126,7 +126,7 @@ async function firebaseIdToken(): Promise<string> {
     throw new Error("Please sign in again before uploading files.");
   }
 
-  return user.getIdToken();
+  return user.getIdToken(true);
 }
 
 async function apiPayload<T>(response: Response): Promise<T> {
@@ -174,6 +174,11 @@ export async function uploadSellerPortfolio(
   applicationId: string,
   files: File[],
   replyToMessageId: number,
+  onUploaded?: (
+    uploaded: SellerPortfolioImage[],
+    completed: number,
+    total: number,
+  ) => Promise<void> | void,
 ): Promise<SellerPortfolioImage[]> {
   if (files.length < 1 || files.length > MAX_IMAGES) {
     throw new Error(`Choose between 1 and ${MAX_IMAGES} portfolio images.`);
@@ -226,6 +231,8 @@ export async function uploadSellerPortfolio(
       contentType: result.contentType || file.type,
       size: result.size || file.size,
     });
+
+    await onUploaded?.([...uploaded], position + 1, files.length);
   }
 
   return uploaded;
@@ -234,6 +241,7 @@ export async function uploadSellerPortfolio(
 async function markSubmissionFailed(
   applicationId: string,
   caught: unknown,
+  portfolioImages: SellerPortfolioImage[] = [],
 ): Promise<void> {
   const { db } = requireServices();
   const message = errorMessage(caught).slice(0, 2000);
@@ -241,7 +249,7 @@ async function markSubmissionFailed(
   try {
     await updateDoc(doc(db, COLLECTION, applicationId), {
       status: "submissionFailed",
-      portfolioImages: [],
+      portfolioImages,
       failureReason: message,
       updatedAt: serverTimestamp(),
     });
@@ -254,6 +262,7 @@ export async function submitSellerApplication(
   uid: string,
   input: SellerApplicationDraftInput,
   files: File[],
+  onProgress?: (message: string) => void,
 ): Promise<string> {
   const { db } = requireServices();
 
@@ -282,6 +291,7 @@ export async function submitSellerApplication(
   });
 
   try {
+    onProgress?.("Application saved. Connecting secure portfolio storage…");
     const telegram = await createTelegramApplicationHeader(
       uid,
       created.id,
@@ -294,11 +304,20 @@ export async function submitSellerApplication(
       updatedAt: serverTimestamp(),
     });
 
+    let persistedImages: SellerPortfolioImage[] = [];
     const portfolioImages = await uploadSellerPortfolio(
       uid,
       created.id,
       files,
       telegram.messageId,
+      async (uploaded, completed, total) => {
+        persistedImages = uploaded;
+        onProgress?.(`Securing portfolio image ${completed} of ${total}…`);
+        await updateDoc(created, {
+          portfolioImages: uploaded,
+          updatedAt: serverTimestamp(),
+        });
+      },
     );
 
     await updateDoc(created, {
@@ -310,7 +329,13 @@ export async function submitSellerApplication(
 
     return created.id;
   } catch (caught) {
-    await markSubmissionFailed(created.id, caught);
+    const snapshot = await getDoc(created).catch(() => null);
+    const persistedImages =
+      snapshot?.exists() &&
+      Array.isArray(snapshot.data().portfolioImages)
+        ? (snapshot.data().portfolioImages as SellerPortfolioImage[])
+        : [];
+    await markSubmissionFailed(created.id, caught, persistedImages);
 
     throw new Error(
       `Your application details were saved, but the Telegram portfolio upload failed. ` +
@@ -353,6 +378,8 @@ export async function retrySellerPortfolioUpload(
     updatedAt: serverTimestamp(),
   });
 
+  let persistedImages: SellerPortfolioImage[] = [];
+
   try {
     let headerMessageId = application.telegramHeaderMessageId;
 
@@ -378,6 +405,13 @@ export async function retrySellerPortfolioUpload(
       applicationId,
       files,
       headerMessageId,
+      async (uploaded) => {
+        persistedImages = uploaded;
+        await updateDoc(applicationRef, {
+          portfolioImages: uploaded,
+          updatedAt: serverTimestamp(),
+        });
+      },
     );
 
     await updateDoc(applicationRef, {
@@ -387,7 +421,7 @@ export async function retrySellerPortfolioUpload(
       updatedAt: serverTimestamp(),
     });
   } catch (caught) {
-    await markSubmissionFailed(applicationId, caught);
+    await markSubmissionFailed(applicationId, caught, persistedImages);
     throw new Error(errorMessage(caught));
   }
 }
@@ -696,6 +730,10 @@ export async function verifySellerAccessPayment(
       totalOrders: 0,
       revenueTotal: 0,
       subscriptionTier: "starter",
+      subscriptionPlan: "commission",
+      subscriptionMonthlyFeePaise: 0,
+      commissionRateBasisPoints: 1200,
+      subscriptionStatus: "commission",
       verificationBadge: "verifiedSeller",
       featured: false,
       active: true,

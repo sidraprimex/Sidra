@@ -11,6 +11,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { phase4Firestore, phase4Storage } from "@/services/phase4Firebase";
@@ -48,8 +49,16 @@ export async function createProductDraft(
 ): Promise<string> {
   const validation = validateProductDraft(input, [], "saveDraft");
   if (!validation.valid) throw new Error(Object.values(validation.errors)[0]);
-  const reference = await addDoc(collection(phase4Firestore(), "products"), {
-    ...input,
+  const db = phase4Firestore();
+  const reference = doc(collection(db, "products"));
+  const {
+    costing = { makingCostPaise: 0, sellerShippingCostPaise: 0 },
+    ...publicInput
+  } = input;
+  const batch = writeBatch(db);
+  batch.set(reference, {
+    ...publicInput,
+    productId: reference.id,
     studioId,
     sellerId,
     slug: `${normalizeSlug(input.name)}-${Date.now().toString(36)}`,
@@ -64,6 +73,15 @@ export async function createProductDraft(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  batch.set(doc(db, "productCostings", reference.id), {
+    productId: reference.id,
+    studioId,
+    sellerId,
+    ...costing,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  await batch.commit();
   return reference.id;
 }
 
@@ -72,7 +90,21 @@ export async function updateProductDraft(productId: string, input: ProductDraftI
   if (!existing) throw new Error("Product not found.");
   const validation = validateProductDraft(input, existing.media, "saveDraft");
   if (!validation.valid) throw new Error(Object.values(validation.errors)[0]);
-  await updateDoc(doc(phase4Firestore(), "products", productId), { ...input, updatedAt: serverTimestamp() });
+  const db = phase4Firestore();
+  const {
+    costing = { makingCostPaise: 0, sellerShippingCostPaise: 0 },
+    ...publicInput
+  } = input;
+  const batch = writeBatch(db);
+  batch.update(doc(db, "products", productId), { ...publicInput, updatedAt: serverTimestamp() });
+  batch.set(doc(db, "productCostings", productId), {
+    productId,
+    studioId: existing.studioId,
+    sellerId: existing.sellerId,
+    ...costing,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
 }
 
 export async function uploadProductImages(

@@ -2,7 +2,7 @@
   "name": "sidra",
   "version": "0.1.0",
   "private": true,
-  "description": "Sidra \u2014 a curated luxury digital ecosystem for resin art and handcrafted goods.",
+  "description": "Sidra — a curated luxury digital ecosystem for resin art and handcrafted goods.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -33,17 +33,20 @@
   "dependencies": {
     "@fontsource-variable/cormorant-garamond": "^5.2.8",
     "@fontsource-variable/inter": "^5.2.8",
+    "@hookform/resolvers": "^5.2.1",
+    "@types/qrcode": "^1.5.5",
     "firebase": "12.16.0",
     "framer-motion": "12.42.2",
     "gsap": "^3.13.0",
     "next": "15.5.16",
+    "qrcode": "^1.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-hook-form": "^7.62.0",
-    "zod": "^4.1.5",
-    "@hookform/resolvers": "^5.2.1"
+    "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
     "@types/node": "^22.18.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
@@ -53,8 +56,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
-    "@eslint/eslintrc": "^3.3.1"
+    "vitest": "^3.2.4"
   },
   "workspaces": [
     "firebase/functions"

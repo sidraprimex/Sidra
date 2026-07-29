@@ -16,6 +16,10 @@ const blank: ProductDraftInput = {
   story: "",
   pricePaise: 0,
   salePricePaise: null,
+  costing: {
+    makingCostPaise: 0,
+    sellerShippingCostPaise: 0,
+  },
   sku: "",
   inventoryMode: "madeToOrder",
   inventoryCount: null,
@@ -49,6 +53,17 @@ export function ProductForm({
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
   const preview = media.find((item) => item.kind === "image")?.url ?? null;
   const selectedCollections = useMemo(() => new Set(value.collectionIds), [value.collectionIds]);
+  const currentCosting = value.costing ?? {
+    makingCostPaise: 0,
+    sellerShippingCostPaise: 0,
+  };
+  const sellingPrice = value.salePricePaise ?? value.pricePaise;
+  const estimatedProfit = Math.max(
+    0,
+    sellingPrice -
+      currentCosting.makingCostPaise -
+      currentCosting.sellerShippingCostPaise,
+  );
 
   const submit = async (intent: "saveDraft" | "submit") => {
     const result = validateProductDraft(value, media, intent);
@@ -81,8 +96,15 @@ export function ProductForm({
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm">Price (INR)<input type="number" min="1" className="rounded-[var(--radius-md)] border border-border bg-background px-4 py-3" value={value.pricePaise / 100 || ""} onChange={(e) => setValue({ ...value, pricePaise: Math.round(Number(e.target.value) * 100) })} /></label>
             <label className="grid gap-2 text-sm">Sale price (INR)<input type="number" min="0" className="rounded-[var(--radius-md)] border border-border bg-background px-4 py-3" value={value.salePricePaise === null ? "" : value.salePricePaise / 100} onChange={(e) => setValue({ ...value, salePricePaise: e.target.value ? Math.round(Number(e.target.value) * 100) : null })} /></label>
+            <label className="grid gap-2 text-sm">Making + material cost (INR)<input type="number" min="0" className="rounded-[var(--radius-md)] border border-border bg-background px-4 py-3" value={currentCosting.makingCostPaise / 100 || ""} onChange={(e) => setValue({ ...value, costing: { ...currentCosting, makingCostPaise: Math.max(0, Math.round(Number(e.target.value) * 100)) } })} /></label>
+            <label className="grid gap-2 text-sm">Seller shipping cost (INR)<input type="number" min="0" className="rounded-[var(--radius-md)] border border-border bg-background px-4 py-3" value={currentCosting.sellerShippingCostPaise / 100 || ""} onChange={(e) => setValue({ ...value, costing: { ...currentCosting, sellerShippingCostPaise: Math.max(0, Math.round(Number(e.target.value) * 100)) } })} /></label>
             <label className="grid gap-2 text-sm">SKU<input className="rounded-[var(--radius-md)] border border-border bg-background px-4 py-3" value={value.sku} onChange={(e) => setValue({ ...value, sku: e.target.value })} /></label>
             <label className="grid gap-2 text-sm">Inventory mode<select className="rounded-[var(--radius-md)] border border-border bg-background px-4 py-3" value={value.inventoryMode} onChange={(e) => setValue({ ...value, inventoryMode: e.target.value as ProductDraftInput["inventoryMode"] })}><option value="madeToOrder">Made to order</option><option value="finite">Finite</option><option value="unlimited">Unlimited</option></select></label>
+          </div>
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-gold-600)]/25 bg-[var(--color-gold-100)]/50 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[.18em] text-[var(--color-gold-600)]">Private seller estimate</p>
+            <p className="mt-2 font-heading text-3xl">₹{(estimatedProfit / 100).toLocaleString("en-IN")} estimated profit</p>
+            <p className="mt-2 text-sm text-muted">Making and shipping costs stay private from buyers. Final platform commission is calculated from this profit according to the active seller plan.</p>
           </div>
         </section>
 

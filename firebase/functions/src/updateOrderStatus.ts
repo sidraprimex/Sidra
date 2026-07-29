@@ -59,20 +59,45 @@ export const updateOrderStatus = onCall(async (request) => {
     };
     if (nextStatus === "readyToShip") update.shippingPackage = shippingPackage;
 
-    if (nextStatus === "completed") {
-      const settings = await transaction.get(db.collection("settings").doc("commission"));
-      const config = (settings.data() ?? { mode: "percentage", percentageBasisPoints: 0 }) as CommissionConfig;
-      const grossPaise = Number(order.totalPaise ?? 0);
-      const commissionPaise = calculateCommissionPaise(grossPaise, config, String(order.categoryId ?? "default"), String(order.subscriptionTier ?? "starter"));
-      const payoutRef = db.collection("payouts").doc();
-      transaction.create(payoutRef, {
+    if (nextStatus === "delivered") {
+      const plan = String(order.subscriptionPlan ?? "commission");
+      const maximumByPlan: Readonly<Record<string, number>> = {
+        commission: 1200,
+        monthly500: 1000,
+        monthly2000: 200,
+      };
+      const configuredRate = Math.max(
+        0,
+        Number(order.commissionRateBasisPoints ?? maximumByPlan[plan] ?? 1200),
+      );
+      const rate = Math.min(maximumByPlan[plan] ?? 1200, configuredRate);
+      const profitPaise = Math.max(0, Number(order.profitPaise ?? 0));
+      const config: CommissionConfig = {
+        mode: "percentage",
+        percentageBasisPoints: rate,
+      };
+      const commissionPaise = calculateCommissionPaise(
+        profitPaise,
+        config,
+        "profit",
+        plan,
+      );
+      const payoutRef = db.collection("payouts").doc(`profit-${orderId}`);
+      const payoutSnapshot = await transaction.get(payoutRef);
+      if (!payoutSnapshot.exists) transaction.create(payoutRef, {
+        payoutId: payoutRef.id,
         orderId,
         studioId: order.studioId,
-        grossPaise,
+        sellerUid: order.sellerUid ?? null,
+        type: "profitSettlement",
+        grossPaise: profitPaise,
         commissionPaise,
-        sellerAmountPaise: grossPaise - commissionPaise,
-        status: "pending",
+        sellerAmountPaise: profitPaise - commissionPaise,
+        commissionBasisPoints: rate,
+        subscriptionPlan: plan,
+        status: "available",
         createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       });
     }
 

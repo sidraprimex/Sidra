@@ -109,6 +109,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /productCostings/{productId} {
+      allow read: if founder()
+        || (seller() && sameStudio(resource.data.studioId));
+      allow create: if verified()
+        && seller()
+        && sameStudio(request.resource.data.studioId)
+        && request.resource.data.productId == productId
+        && request.resource.data.sellerId == uid();
+      allow update: if founder() || (
+        seller()
+        && sameStudio(resource.data.studioId)
+        && request.resource.data.productId == resource.data.productId
+        && request.resource.data.studioId == resource.data.studioId
+        && request.resource.data.sellerId == resource.data.sellerId
+        && changedOnly([
+          'makingCostPaise', 'sellerShippingCostPaise', 'updatedAt'
+        ])
+      );
+      allow delete: if false;
+    }
+
     match /categories/{categoryId} {
       allow read: if resource.data.active == true || contentAdmin();
       allow create, update: if contentAdmin();
@@ -487,7 +508,16 @@ service cloud.firestore {
                 request.resource.data.status == 'uploading'
                 && request.resource.data.failureReason == null
                 && request.resource.data.portfolioImages is list
-                && request.resource.data.portfolioImages.size() == 0
+                && request.resource.data.portfolioImages.size() <= 8
+                && (
+                  request.resource.data.portfolioImages.size() == 0
+                  || (
+                    request.resource.data.portfolioImages[0].provider
+                      == 'telegram'
+                    && request.resource.data.portfolioImages[0].ownerUid
+                      == request.auth.uid
+                  )
+                )
                 && (
                   (
                     request.resource.data.telegramChatId == null
@@ -507,7 +537,16 @@ service cloud.firestore {
                   2000
                 )
                 && request.resource.data.portfolioImages is list
-                && request.resource.data.portfolioImages.size() == 0
+                && request.resource.data.portfolioImages.size() <= 8
+                && (
+                  request.resource.data.portfolioImages.size() == 0
+                  || (
+                    request.resource.data.portfolioImages[0].provider
+                      == 'telegram'
+                    && request.resource.data.portfolioImages[0].ownerUid
+                      == request.auth.uid
+                  )
+                )
               )
             )
           )
@@ -536,6 +575,22 @@ service cloud.firestore {
         )
       );
 
+      allow delete: if false;
+    }
+
+    match /sellerSubscriptionRequests/{requestId} {
+      allow read: if founder()
+        || (signedIn() && resource.data.sellerUid == uid());
+      allow create: if verified()
+        && seller()
+        && request.resource.data.sellerUid == uid()
+        && sameStudio(request.resource.data.studioId)
+        && request.resource.data.plan in ['monthly500', 'monthly2000']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.monthlyFeePaise in [50000, 200000]
+        && request.resource.data.maximumCommissionBasisPoints in [1000, 200]
+        && validText(request.resource.data.paymentReference, 4, 180);
+      allow update: if founder();
       allow delete: if false;
     }
 

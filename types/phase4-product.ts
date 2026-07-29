@@ -89,6 +89,7 @@ export interface ProductDraftInput {
   readonly story: string;
   readonly pricePaise: number;
   readonly salePricePaise: number | null;
+  readonly costing?: ProductCostingInput;
   readonly sku: string;
   readonly inventoryMode: InventoryMode;
   readonly inventoryCount: number | null;
@@ -99,6 +100,11 @@ export interface ProductDraftInput {
   readonly productionTimeDays: number;
   readonly shippingTimeDays: number;
   readonly seo: ProductSeo;
+}
+
+export interface ProductCostingInput {
+  readonly makingCostPaise: number;
+  readonly sellerShippingCostPaise: number;
 }
 
 export interface ProductModerationSettings {

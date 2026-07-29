@@ -71,7 +71,7 @@ export async function getHomepageExperienceData(): Promise<HomepageExperienceDat
       "Products",
       listPublishedProducts({
         sort: "newest",
-        pageSize: 60,
+        pageSize: 24,
       }),
     ),
     safeList<JournalArticle>(

@@ -32,7 +32,6 @@ function requireSignedInUser() {
 export async function createPhase12SupportTicket(
   input: CreateSupportTicketInput,
 ): Promise<{ ticketId: string }> {
-  const { db, user } = requireSignedInUser();
   const subject = input.subject.trim();
   const description = input.description.trim();
 
@@ -42,51 +41,13 @@ export async function createPhase12SupportTicket(
     );
   }
 
-  const ticketRef = doc(collection(db, "supportTickets"));
-  const messageRef = doc(collection(db, "messages"));
-  const conversationId = crypto.randomUUID();
-  const batch = writeBatch(db);
-
-  batch.set(ticketRef, {
-    ticketId: ticketRef.id,
-    customerId: user.uid,
-    studioId: null,
-    openedByUid: user.uid,
-    assignedAdminUid: null,
+  return callSidraFunction("createSupportTicket", {
     subject,
-    category: input.category,
     description,
+    category: input.category,
     orderId: input.orderId?.trim() || null,
     productId: input.productId?.trim() || null,
-    attachmentUrls: [],
-    conversationId,
-    status: "open",
-    priority: "normal",
-    satisfactionRating: null,
-    lastMessageAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    closedAt: null,
   });
-
-  batch.set(messageRef, {
-    messageId: messageRef.id,
-    conversationId,
-    contextType: "supportTicket",
-    contextId: ticketRef.id,
-    senderUid: user.uid,
-    recipientUids: [],
-    body: description,
-    attachmentUrls: [],
-    createdAt: serverTimestamp(),
-    editedAt: null,
-    deleted: false,
-    system: false,
-  });
-
-  await batch.commit();
-
-  return { ticketId: ticketRef.id };
 }
 
 export async function sendPhase12SupportMessage(

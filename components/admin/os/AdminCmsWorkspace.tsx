@@ -14,6 +14,7 @@ import {
 import { defaultThemeSettings } from "@/services/runtimeConfigService";
 import { defaultPaymentSettings } from "@/services/paymentConfigurationService";
 import type { AdminWorkspaceTab, SidraIntegrationSettings, SidraPaymentSettings, SidraThemeSettings } from "@/types/admin-os";
+import type { CmsBlock } from "@/types/cms";
 
 const blankIntegration: Omit<SidraIntegrationSettings, "updatedAt" | "updatedBy"> = {
   razorpayPublicKey: "",
@@ -32,7 +33,7 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
   const [payments, setPayments] = useState({ ...defaultPaymentSettings });
   const [integrations, setIntegrations] = useState({ ...blankIntegration });
   const [cmsDocumentId, setCmsDocumentId] = useState("homepage");
-  const [cmsJson, setCmsJson] = useState("{}");
+  const [cmsBlocks, setCmsBlocks] = useState<CmsBlock[]>([]);
 
   useEffect(() => {
     void Promise.all([
@@ -44,7 +45,10 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
       if (themeDoc) setTheme((current) => ({ ...current, ...(toEditableRecord(themeDoc.data) as Partial<typeof current>) }));
       if (paymentDoc) setPayments((current) => ({ ...current, ...(toEditableRecord(paymentDoc.data) as Partial<typeof current>) }));
       if (integrationDoc) setIntegrations((current) => ({ ...current, ...(toEditableRecord(integrationDoc.data) as Partial<typeof current>) }));
-      if (cmsDoc) setCmsJson(JSON.stringify(toEditableRecord(cmsDoc.data), null, 2));
+      if (cmsDoc) {
+        const value = toEditableRecord(cmsDoc.data);
+        setCmsBlocks(Array.isArray(value.blocks) ? value.blocks as CmsBlock[] : []);
+      }
     }).catch((caught: unknown) => setMessage(caught instanceof Error ? caught.message : "CMS settings could not be loaded."));
   }, []);
 
@@ -79,7 +83,8 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
     setBusy(true); setMessage(null);
     try {
       const value = await getAdminDocument("cms", cmsDocumentId);
-      setCmsJson(JSON.stringify(value ? toEditableRecord(value.data) : {}, null, 2));
+      const record = value ? toEditableRecord(value.data) : {};
+      setCmsBlocks(Array.isArray(record.blocks) ? record.blocks as CmsBlock[] : []);
     } catch (caught) { setMessage(caught instanceof Error ? caught.message : "CMS document could not be loaded."); }
     finally { setBusy(false); }
   };
@@ -87,9 +92,7 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
   const saveCms = async () => {
     setBusy(true); setMessage(null);
     try {
-      const parsed = JSON.parse(cmsJson) as unknown;
-      if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("CMS JSON must be an object.");
-      await setAdminDocument({ collectionName: "cms", documentId: cmsDocumentId, value: parsed as Record<string, unknown>, actorUid, action: "cms.publish", summary: `Published CMS document ${cmsDocumentId}` });
+      await setAdminDocument({ collectionName: "cms", documentId: cmsDocumentId, value: { blocks: cmsBlocks.map((block, index) => ({ ...block, order: index + 1 })) }, actorUid, action: "cms.publish", summary: `Published CMS document ${cmsDocumentId}` });
       setMessage(`CMS document “${cmsDocumentId}” published.`);
     } catch (caught) { setMessage(caught instanceof Error ? caught.message : "CMS document could not be saved."); }
     finally { setBusy(false); }
@@ -138,9 +141,31 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
   return <Card elevated>
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-[var(--color-dusty-rose)]">Live CMS</p>
     <h2 className="mt-3 font-display text-5xl text-[var(--color-deep-plum)]">Control words, sections, videos and navigation</h2>
-    <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-700">Homepage blocks are already rendered from <code>cms/homepage</code>. Use the same editor for navigation, footer, policies and future registered surfaces. You can show, hide, reorder and change every block value without a deployment.</p>
+    <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-700">Edit visible text, links and section order directly. No code or JSON is required.</p>
     <div className="mt-6 flex flex-col gap-3 sm:flex-row"><input value={cmsDocumentId} onChange={(event) => setCmsDocumentId(event.target.value)} placeholder="homepage, navigation, footer, policies" className="min-w-0 flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3" /><Button variant="outline" loading={busy} onClick={() => void loadCms()}>Load CMS document</Button></div>
-    <textarea value={cmsJson} onChange={(event) => setCmsJson(event.target.value)} className="mt-4 min-h-[34rem] w-full rounded-2xl border border-black/10 bg-[#1c1c1c] p-4 font-mono text-xs leading-6 text-[#f8f4f0]" spellCheck={false} />
+    <div className="mt-6 grid gap-4">
+      {cmsBlocks.map((block, index) => (
+        <section key={block.id} className="rounded-[1.4rem] border border-black/10 bg-white/70 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[var(--color-dusty-rose)]">Section {index + 1}</p><h3 className="mt-1 font-display text-3xl text-[var(--color-deep-plum)]">{block.type}</h3></div>
+            <div className="flex gap-2">
+              <button type="button" disabled={index === 0} onClick={() => setCmsBlocks((current) => { const next=[...current]; [next[index-1],next[index]]=[next[index],next[index-1]]; return next; })} className="grid h-10 w-10 place-items-center rounded-full border border-black/10 bg-white disabled:opacity-30" aria-label="Move section up">↑</button>
+              <button type="button" disabled={index === cmsBlocks.length - 1} onClick={() => setCmsBlocks((current) => { const next=[...current]; [next[index+1],next[index]]=[next[index],next[index+1]]; return next; })} className="grid h-10 w-10 place-items-center rounded-full border border-black/10 bg-white disabled:opacity-30" aria-label="Move section down">↓</button>
+              <label className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 text-xs font-semibold"><input type="checkbox" checked={block.enabled} onChange={(event) => setCmsBlocks((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: event.target.checked } : item))} />Visible</label>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {Object.entries(block.data).map(([key, rawValue]) => {
+              const value = Array.isArray(rawValue) ? rawValue.join("\n") : String(rawValue ?? "");
+              const multiline = value.length > 90 || Array.isArray(rawValue);
+              return <label key={key} className={`grid gap-2 text-sm font-semibold ${multiline ? "sm:col-span-2" : ""}`}><span className="capitalize">{key.replace(/([A-Z])/g, " $1")}</span>{multiline ? <textarea value={value} onChange={(event) => setCmsBlocks((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, data: { ...item.data, [key]: Array.isArray(rawValue) ? event.target.value.split("\n").map((line) => line.trim()).filter(Boolean) : event.target.value } } : item))} className="min-h-28 rounded-2xl border border-black/10 bg-white p-4 font-normal" /> : <input value={value} onChange={(event) => setCmsBlocks((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, data: { ...item.data, [key]: typeof rawValue === "number" ? Number(event.target.value) : event.target.value } } : item))} className="rounded-2xl border border-black/10 bg-white px-4 py-3 font-normal" />}</label>;
+            })}
+          </div>
+          <Button variant="danger" className="mt-5" onClick={() => setCmsBlocks((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove section</Button>
+        </section>
+      ))}
+      <Button variant="outline" onClick={() => setCmsBlocks((current) => [...current, { id: `editorial-${Date.now()}`, type: "Editorial", enabled: true, order: current.length + 1, data: { title: "New section", body: "Add your content here" } }])}>Add new section</Button>
+    </div>
     {message ? <p className="mt-4 rounded-2xl bg-white/70 p-4 text-sm">{message}</p> : null}
     <Button className="mt-5" loading={busy} onClick={() => void saveCms()}>Publish CMS document</Button>
   </Card>;

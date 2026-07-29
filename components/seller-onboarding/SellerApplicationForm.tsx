@@ -83,6 +83,7 @@ export function SellerApplicationForm({
           ),
         },
         files,
+        setStage,
       );
 
       setStage("Application submitted. Opening your tracking page...");
@@ -205,7 +206,7 @@ export function SellerApplicationForm({
             }
           />
           <span className="text-micro font-normal text-gray-700">
-            1–8 images, maximum 10 MB each. The application record is
+            1–8 images, maximum 4 MB each. The application record is
             saved before uploads begin.
           </span>
         </label>
