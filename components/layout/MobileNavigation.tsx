@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { NavigationItem } from "@/types/content";
 import { logout } from "@/services/authService";
 
@@ -26,6 +27,9 @@ export function MobileNavigation({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleLogout = async (): Promise<void> => {
     setOpen(false);
@@ -82,7 +86,7 @@ export function MobileNavigation({
         Menu
       </button>
 
-      {open ? (
+      {open && mounted ? createPortal(
         <div
           id="mobile-navigation"
           className="fixed inset-0 z-50 overflow-y-auto bg-[var(--color-deep-onyx)] text-[var(--color-porcelain)]"
@@ -197,7 +201,8 @@ export function MobileNavigation({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );

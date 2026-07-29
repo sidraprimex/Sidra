@@ -88,3 +88,26 @@ export interface SellerPayout {
   readonly status: "pending" | "available" | "paid";
   readonly createdAt: string;
 }
+
+export type WithdrawalMethod = "upi" | "bank" | "imps";
+export type WithdrawalStatus = "pending" | "processing" | "paid" | "rejected";
+
+export interface SellerWithdrawal {
+  readonly withdrawalId: string;
+  readonly studioId: string;
+  readonly sellerUid: string;
+  readonly amountPaise: number;
+  readonly method: WithdrawalMethod;
+  readonly destination: {
+    readonly upiId?: string;
+    readonly accountHolderName?: string;
+    readonly accountNumber?: string;
+    readonly ifsc?: string;
+    readonly bankName?: string;
+  };
+  readonly status: WithdrawalStatus;
+  readonly paymentReference: string | null;
+  readonly adminNote: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}

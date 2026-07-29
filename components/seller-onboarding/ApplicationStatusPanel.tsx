@@ -134,6 +134,7 @@ export function ApplicationStatusPanel({
   const [submitting, setSubmitting] = useState(false);
   const [retryFiles, setRetryFiles] = useState<File[]>([]);
   const [retrying, setRetrying] = useState(false);
+  const [retryProgress, setRetryProgress] = useState<string | null>(null);
 
   useEffect(() => {
     void getCheckoutPaymentSettings()
@@ -306,12 +307,14 @@ export function ApplicationStatusPanel({
             onClick={async () => {
               setRetrying(true);
               setError(null);
+              setRetryProgress("Preparing portfolio upload…");
 
               try {
                 await retrySellerPortfolioUpload(
                   uid,
                   application.id,
                   retryFiles,
+                  setRetryProgress,
                 );
                 setRetryFiles([]);
               } catch (caught) {
@@ -327,6 +330,14 @@ export function ApplicationStatusPanel({
           >
             Retry portfolio upload
           </Button>
+          {retryProgress ? (
+            <div className="mt-4 rounded-2xl border border-gold-500/30 bg-gold-100/60 p-4" role="status" aria-live="polite">
+              <div className="flex items-center gap-3">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-deep-plum)] border-t-transparent" aria-hidden="true" />
+                <span className="text-caption font-semibold">{retryProgress}</span>
+              </div>
+            </div>
+          ) : null}
         </Card>
       ) : null}
 

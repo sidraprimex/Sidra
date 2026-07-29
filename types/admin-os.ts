@@ -31,6 +31,7 @@ export interface AdminSnapshot {
   readonly manualPaymentRequests: readonly AdminRecord[];
   readonly sellerSubscriptionRequests: readonly AdminRecord[];
   readonly payouts: readonly AdminRecord[];
+  readonly sellerWithdrawals: readonly AdminRecord[];
   readonly auditLogs: readonly AdminRecord[];
 }
 

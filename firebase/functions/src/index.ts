@@ -15,6 +15,7 @@ export { maintainProductSearchIndex } from "./productSearchIndex";
 export { initiatePayment } from "./initiatePayment";
 export { razorpayWebhook } from "./paymentWebhook";
 export { updateOrderStatus } from "./updateOrderStatus";
+export { requestSellerWithdrawal, reviewSellerWithdrawal } from "./sellerWithdrawals";
 export { requestOrderRefund } from "./requestOrderRefund";
 export { submitCustomOrder } from "./submitCustomOrder";
 export { sendCustomOrderQuote, sendCustomOrderMessage } from "./customOrderActions";

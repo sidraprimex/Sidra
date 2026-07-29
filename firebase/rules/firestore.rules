@@ -318,6 +318,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /sellerWithdrawals/{withdrawalId} {
+      allow read: if financeAdmin() || ownStudio(resource.data.studioId);
+      allow write: if false;
+    }
+
     match /coupons/{couponId} {
       allow read: if signedIn() || marketingAdmin();
       allow create, update: if marketingAdmin();
@@ -665,6 +670,12 @@ match /refundRequests/{requestId} {
 }
 
 match /payouts/{payoutId} {
+  allow read: if isFounder()
+    || (isSeller() && resource.data.studioId == request.auth.token.studioId);
+  allow write: if false;
+}
+
+match /sellerWithdrawals/{withdrawalId} {
   allow read: if isFounder()
     || (isSeller() && resource.data.studioId == request.auth.token.studioId);
   allow write: if false;

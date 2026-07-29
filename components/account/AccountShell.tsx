@@ -17,7 +17,7 @@ export function AccountShell({ title, eyebrow, children, mode="customer" }: Acco
   const links = mode === "seller" ? sellerLinks : mode === "admin" ? adminLinks : customerLinks;
   const displayName = profile?.fullName || user?.displayName || user?.email?.split("@")[0] || "Sidra member";
   const profilePhoto = profile?.profilePhoto || user?.photoURL || null;
-  const goBack = () => window.history.length > 1 ? router.back() : router.push("/");
+  const goBack = () => router.push(mode === "seller" ? "/studio-admin/overview" : mode === "admin" ? "/admin/control-center" : "/account/dashboard");
   return <main className="min-h-screen w-full overflow-x-clip bg-[radial-gradient(circle_at_top_right,rgba(217,167,176,.18),transparent_28%),linear-gradient(180deg,#fbf8f5,#f4ebe8)] px-4 pb-16 pt-4 text-[var(--color-deep-onyx)] sm:px-6 lg:px-8">
     <div className="mx-auto w-full max-w-7xl">
       <header className="sticky top-3 z-40 rounded-[1.5rem] border border-[rgba(59,30,53,.12)] bg-[rgba(252,249,246,.92)] p-3 shadow-[0_20px_55px_rgba(59,30,53,.10)] backdrop-blur-xl sm:p-4">

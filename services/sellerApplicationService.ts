@@ -348,6 +348,7 @@ export async function retrySellerPortfolioUpload(
   uid: string,
   applicationId: string,
   files: File[],
+  onProgress?: (message: string) => void,
 ): Promise<void> {
   const { db } = requireServices();
   const applicationRef = doc(db, COLLECTION, applicationId);
@@ -381,6 +382,7 @@ export async function retrySellerPortfolioUpload(
   let persistedImages: SellerPortfolioImage[] = [];
 
   try {
+    onProgress?.("Connecting to secure Telegram portfolio storage…");
     let headerMessageId = application.telegramHeaderMessageId;
 
     if (!headerMessageId) {
@@ -405,8 +407,9 @@ export async function retrySellerPortfolioUpload(
       applicationId,
       files,
       headerMessageId,
-      async (uploaded) => {
+      async (uploaded, completed, total) => {
         persistedImages = uploaded;
+        onProgress?.(`Portfolio image ${completed} of ${total} saved…`);
         await updateDoc(applicationRef, {
           portfolioImages: uploaded,
           updatedAt: serverTimestamp(),
@@ -420,6 +423,7 @@ export async function retrySellerPortfolioUpload(
       failureReason: null,
       updatedAt: serverTimestamp(),
     });
+    onProgress?.(`All ${portfolioImages.length} portfolio images saved.`);
   } catch (caught) {
     await markSubmissionFailed(applicationId, caught, persistedImages);
     throw new Error(errorMessage(caught));

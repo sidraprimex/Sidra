@@ -1,9 +1,24 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
 import { AccountShell } from "@/components/account/AccountShell";
-import { PayoutSummary } from "@/components/orders/PayoutSummary";
+import { SellerWalletManager } from "@/components/studio-admin/SellerWalletManager";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { useRouteGuard } from "@/hooks/useRouteGuard";
 import { listStudioPayouts } from "@/services/orderLifecycleService";
-import type { SellerPayout } from "@/types/phase7-orders";
-export default function StudioPayoutsPage(): React.JSX.Element { const auth=useRouteGuard({allowedRoles:["seller","founder","superAdmin"],requireStudioId:true}); const [payouts,setPayouts]=useState<readonly SellerPayout[]|null>(null); useEffect(()=>{if(!auth.claims?.studioId)return;void listStudioPayouts(auth.claims.studioId).then(setPayouts).catch(()=>setPayouts([]));},[auth.claims?.studioId]); if(auth.loading||!auth.user||!payouts)return <LoadingSkeleton count={6}/>; return <AccountShell mode="seller" eyebrow="Seller finance" title="Payouts"><PayoutSummary payouts={[...payouts]}/></AccountShell>; }
+import { listSellerWithdrawals } from "@/services/sellerWithdrawalService";
+import type { SellerPayout, SellerWithdrawal } from "@/types/phase7-orders";
+
+export default function StudioPayoutsPage(): React.JSX.Element {
+  const auth = useRouteGuard({ allowedRoles: ["seller", "founder", "superAdmin"], requireStudioId: true });
+  const [payouts, setPayouts] = useState<readonly SellerPayout[] | null>(null);
+  const [withdrawals, setWithdrawals] = useState<readonly SellerWithdrawal[] | null>(null);
+  const load = useCallback(async () => {
+    if (!auth.claims?.studioId) return;
+    const [nextPayouts, nextWithdrawals] = await Promise.all([listStudioPayouts(auth.claims.studioId), listSellerWithdrawals(auth.claims.studioId)]);
+    setPayouts(nextPayouts); setWithdrawals(nextWithdrawals);
+  }, [auth.claims?.studioId]);
+  useEffect(() => { void load().catch(() => { setPayouts([]); setWithdrawals([]); }); }, [load]);
+  if (auth.loading || !auth.user || !payouts || !withdrawals) return <LoadingSkeleton count={6} />;
+  return <AccountShell mode="seller" eyebrow="Seller finance" title="Wallet & withdrawals"><SellerWalletManager payouts={payouts} withdrawals={withdrawals} onReload={load} /></AccountShell>;
+}

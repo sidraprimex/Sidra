@@ -30,6 +30,7 @@ const SNAPSHOT_COLLECTIONS = {
   manualPaymentRequests: "manualPaymentRequests",
   sellerSubscriptionRequests: "sellerSubscriptionRequests",
   payouts: "payouts",
+  sellerWithdrawals: "sellerWithdrawals",
   auditLogs: "adminAuditLogs",
 } as const;
 

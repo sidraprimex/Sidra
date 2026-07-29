@@ -213,12 +213,19 @@ export function SellerApplicationForm({
       </Card>
 
       {stage ? (
-        <p
+        <div
           className="rounded-2xl border border-gold-500/30 bg-gold-100/60 p-4 text-caption font-semibold text-black-900"
           role="status"
+          aria-live="polite"
         >
-          {stage}
-        </p>
+          <div className="flex items-center gap-3">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-deep-plum)] border-t-transparent" aria-hidden="true" />
+            <span>{stage}</span>
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/10">
+            <span className="block h-full w-1/2 animate-pulse rounded-full bg-[var(--color-deep-plum)]" />
+          </div>
+        </div>
       ) : null}
 
       <Button

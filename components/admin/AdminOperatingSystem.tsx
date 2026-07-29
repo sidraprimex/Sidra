@@ -19,6 +19,7 @@ import {
   verifyManualMarketplacePayment,
 } from "@/services/manualPaymentReviewService";
 import { reviewSellerSubscriptionRequest } from "@/services/sellerSubscriptionService";
+import { reviewSellerWithdrawal } from "@/services/sellerWithdrawalService";
 import type { AdminRecord, AdminSnapshot, AdminWorkspaceTab } from "@/types/admin-os";
 
 const tabs: readonly { readonly id: AdminWorkspaceTab; readonly label: string; readonly description: string }[] = [
@@ -58,7 +59,7 @@ function collectionForTab(tab: AdminWorkspaceTab): keyof AdminSnapshot | null {
   if (tab === "products") return "products";
   if (tab === "orders") return "orders";
   if (tab === "subscriptions") return "sellerSubscriptionRequests";
-  if (tab === "payouts") return "payouts";
+  if (tab === "payouts") return "sellerWithdrawals";
   if (tab === "audit") return "auditLogs";
   return null;
 }
@@ -73,6 +74,7 @@ function recordTitle(collectionName: string, record: AdminRecord): string {
   if (collectionName === "sellerApplications") return text(record, "studioName", "fullName");
   if (collectionName === "sellerSubscriptionRequests") return `${text(record, "plan")} · ${record.id.slice(0, 8)}`;
   if (collectionName === "payouts") return `${text(record, "type")} · ₹${Number(record.data.sellerAmountPaise ?? 0) / 100}`;
+  if (collectionName === "sellerWithdrawals") return `${text(record, "method")} withdrawal · ₹${Number(record.data.amountPaise ?? 0) / 100}`;
   return text(record, "summary", "action", "name", "title");
 }
 
@@ -86,6 +88,7 @@ function recordSubtitle(collectionName: string, record: AdminRecord): string {
   if (collectionName === "sellerApplications") return `${text(record, "status")} · ${text(record, "email")}`;
   if (collectionName === "sellerSubscriptionRequests") return `${text(record, "status")} · UTR ${text(record, "paymentReference")} · Studio ${text(record, "studioId")}`;
   if (collectionName === "payouts") return `${text(record, "status")} · Order ${text(record, "orderId")} · Studio ${text(record, "studioId")}`;
+  if (collectionName === "sellerWithdrawals") return `${text(record, "status")} · Studio ${text(record, "studioId")} · ${text(record, "paymentReference")}`;
   return `${record.id} · ${Object.keys(record.data).slice(0, 5).join(" · ")}`;
 }
 
@@ -175,6 +178,7 @@ export function AdminOperatingSystem(): React.JSX.Element {
       {collectionName === "orders" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><select value={String(record.data.orderStatus ?? record.data.status ?? "placed")} onChange={(event) => void patch("orders", record, { orderStatus: event.target.value, status: event.target.value }, "order.status.change", `Changed order ${record.id} to ${event.target.value}`)} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{["placed","accepted","inProduction","qualityCheck","packaged","readyToShip","shipped","inTransit","outForDelivery","delivered","completed","cancelled","returned"].map((status) => <option key={status} value={status}>{status}</option>)}</select><select value={String(record.data.paymentStatus ?? "pending")} onChange={(event) => void patch("orders", record, { paymentStatus: event.target.value }, "order.payment.change", `Changed order ${record.id} payment to ${event.target.value}`)} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{["pending","paid","failed","refunded","partiallyRefunded"].map((status) => <option key={status} value={status}>{status}</option>)}</select></div> : null}
       {collectionName === "sellerSubscriptionRequests" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button disabled={record.data.status !== "pending"} onClick={async () => { setBusyKey(`subscription:${record.id}`); setMessage(null); try { await reviewSellerSubscriptionRequest({ requestId: record.id, adminUid: actorUid, decision: "approved" }); setMessage(`Approved seller plan ${record.id}`); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Plan could not be approved."); } finally { setBusyKey(null); } }}>Approve plan</Button><Button variant="danger" disabled={record.data.status !== "pending"} onClick={async () => { setBusyKey(`subscription:${record.id}`); setMessage(null); try { await reviewSellerSubscriptionRequest({ requestId: record.id, adminUid: actorUid, decision: "rejected", note: "Payment reference could not be verified." }); setMessage(`Rejected seller plan ${record.id}`); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Plan could not be rejected."); } finally { setBusyKey(null); } }}>Reject</Button></div> : null}
       {collectionName === "payouts" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button disabled={record.data.status === "paid"} onClick={() => void patch("payouts", record, { status: "paid", paidAt: new Date().toISOString(), paidBy: actorUid }, "payout.mark.paid", `Marked seller payout ${record.id} paid`)}>Mark paid</Button><Button variant="outline" disabled={record.data.status !== "pending"} onClick={() => void patch("payouts", record, { status: "available" }, "payout.make.available", `Released seller payout ${record.id}`)}>Release</Button></div> : null}
+      {collectionName === "sellerWithdrawals" ? <div className="mt-5 grid gap-3 sm:grid-cols-3"><Button variant="outline" disabled={record.data.status !== "pending"} onClick={async () => { setBusyKey(`withdrawal:${record.id}`); try { await reviewSellerWithdrawal({ withdrawalId: record.id, decision: "processing" }); setMessage("Withdrawal marked processing."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not update withdrawal."); } finally { setBusyKey(null); } }}>Processing</Button><Button disabled={["paid","rejected"].includes(String(record.data.status))} onClick={async () => { const reference = window.prompt("Enter payment UTR/reference"); if (!reference) return; setBusyKey(`withdrawal:${record.id}`); try { await reviewSellerWithdrawal({ withdrawalId: record.id, decision: "paid", paymentReference: reference }); setMessage("Withdrawal marked paid and seller notified."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not complete withdrawal."); } finally { setBusyKey(null); } }}>Paid + UTR</Button><Button variant="danger" disabled={["paid","rejected"].includes(String(record.data.status))} onClick={async () => { const reason = window.prompt("Enter rejection reason"); if (!reason) return; setBusyKey(`withdrawal:${record.id}`); try { await reviewSellerWithdrawal({ withdrawalId: record.id, decision: "rejected", adminNote: reason }); setMessage("Withdrawal rejected and balance released."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not reject withdrawal."); } finally { setBusyKey(null); } }}>Reject</Button></div> : null}
       {collectionName === "auditLogs" ? <pre className="mt-5 max-h-56 overflow-auto rounded-2xl bg-[#1c1c1c] p-4 text-xs leading-6 text-[#f8f4f0]">{JSON.stringify(toEditableRecord(record.data), null, 2)}</pre> : null}
       </Card>})}</div>}</div>;
   };
