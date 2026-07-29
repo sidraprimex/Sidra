@@ -1,8 +1,8 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
+  getDocs,
   limit,
   onSnapshot,
   query,
@@ -227,29 +227,50 @@ export async function submitSellerApplication(
   onProgress?: (message: string) => void,
 ): Promise<string> {
   const { db } = requireServices();
+  const existing = await getOwnSellerApplication(uid);
 
-  const created = await addDoc(collection(db, COLLECTION), {
-    ...input,
-    uid,
-    portfolioImages: [],
-    status: "uploading",
-    reviewNote: null,
-    reviewedBy: null,
-    studioId: null,
-    slug: null,
-    failureReason: null,
-    storageProvider: "b2",
-    telegramChatId: null,
-    telegramHeaderMessageId: null,
-    accessFeePaise: 0,
-    paymentMethod: null,
-    paymentReference: null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    reviewedAt: null,
-    paymentSubmittedAt: null,
-    paymentVerifiedAt: null,
-    provisionedAt: null,
+  if (existing) {
+    throw new Error(
+      "A Studio application already exists for this account. Open the tracking page to continue.",
+    );
+  }
+
+  // One deterministic document per Firebase account prevents duplicate
+  // applications even when two browser tabs submit at the same time.
+  const created = doc(db, COLLECTION, uid);
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(created);
+
+    if (snapshot.exists()) {
+      throw new Error(
+        "A Studio application already exists for this account. Open the tracking page to continue.",
+      );
+    }
+
+    transaction.set(created, {
+      ...input,
+      uid,
+      portfolioImages: [],
+      status: "uploading",
+      reviewNote: null,
+      reviewedBy: null,
+      studioId: null,
+      slug: null,
+      failureReason: null,
+      storageProvider: "b2",
+      telegramChatId: null,
+      telegramHeaderMessageId: null,
+      accessFeePaise: 0,
+      paymentMethod: null,
+      paymentReference: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      reviewedAt: null,
+      paymentSubmittedAt: null,
+      paymentVerifiedAt: null,
+      provisionedAt: null,
+    });
   });
 
   try {
@@ -291,6 +312,26 @@ export async function submitSellerApplication(
         `Open the application status page to retry. ${errorMessage(caught)}`,
     );
   }
+}
+
+export async function getOwnSellerApplication(
+  uid: string,
+): Promise<SellerApplication | null> {
+  const { db } = requireServices();
+  const snapshot = await getDocs(
+    query(
+      collection(db, COLLECTION),
+      where("uid", "==", uid),
+      limit(100),
+    ),
+  );
+  const values = newestFirst(
+    snapshot.docs.map((item) =>
+      normalizeApplication(item.id, item.data()),
+    ),
+  );
+
+  return values[0] ?? null;
 }
 
 export async function retrySellerPortfolioUpload(
@@ -539,6 +580,12 @@ export async function reviewSellerApplication(params: {
       Math.round(Number(paymentSettings.sellerAccessFeePaise) || 0),
     );
 
+    if (accessFeePaise <= 0) {
+      throw new Error(
+        "Set the Seller Studio access fee in Admin → Payment settings before approving this application.",
+      );
+    }
+
     transaction.update(applicationRef, {
       status: "approved",
       accessFeePaise,
@@ -722,6 +769,32 @@ export async function verifySellerAccessPayment(
       failureReason: null,
       paymentVerifiedAt: serverTimestamp(),
       provisionedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    const paymentRef = doc(
+      db,
+      "payments",
+      `seller-access-${applicationId}`,
+    );
+
+    transaction.set(paymentRef, {
+      paymentId: paymentRef.id,
+      orderId: null,
+      applicationId,
+      studioId,
+      customerId: application.uid,
+      gateway:
+        application.paymentMethod === "razorpayLink"
+          ? "razorpayLink"
+          : "manualUpi",
+      amount: application.accessFeePaise,
+      currency: "INR",
+      status: "succeeded",
+      gatewayTransactionId: application.paymentReference,
+      paymentType: "sellerAccess",
+      verifiedBy: admin.uid,
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   });

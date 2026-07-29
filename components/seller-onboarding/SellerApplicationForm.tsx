@@ -17,6 +17,7 @@ interface Props {
   uid: string;
   email: string;
   onSubmitted: (id: string) => void;
+  onSubmissionStateChange?: (submitting: boolean) => void;
 }
 
 const fieldClass =
@@ -26,6 +27,7 @@ export function SellerApplicationForm({
   uid,
   email,
   onSubmitted,
+  onSubmissionStateChange,
 }: Props): React.JSX.Element {
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export function SellerApplicationForm({
 
     setError(null);
     setSubmitting(true);
+    onSubmissionStateChange?.(true);
     setStage("Saving your application details...");
 
     try {
@@ -97,6 +100,7 @@ export function SellerApplicationForm({
       setStage(null);
     } finally {
       setSubmitting(false);
+      onSubmissionStateChange?.(false);
     }
   });
 

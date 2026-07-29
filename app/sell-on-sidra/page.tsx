@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApplicationStatusPanel } from "@/components/seller-onboarding/ApplicationStatusPanel";
 import { SellerApplicationForm } from "@/components/seller-onboarding/SellerApplicationForm";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
@@ -20,12 +20,18 @@ export default function SellOnSidraPage(): React.JSX.Element {
   const { user, profile, loading } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [hasApplication, setHasApplication] = useState<boolean | null>(null);
+  const [submissionInProgress, setSubmissionInProgress] = useState(false);
+  const submissionInProgressRef = useRef(false);
 
   useEffect(() => {
-    if (hasApplication === true) {
+    if (
+      hasApplication === true &&
+      !submissionInProgressRef.current &&
+      !submitted
+    ) {
       router.replace("/sell-on-sidra/status");
     }
-  }, [hasApplication, router]);
+  }, [hasApplication, router, submissionInProgress, submitted]);
 
   if (loading) {
     return (
@@ -173,16 +179,23 @@ export default function SellOnSidraPage(): React.JSX.Element {
                 </p>
               </div>
 
-              <ApplicationStatusPanel
-                uid={user.uid}
-                onPresenceChange={setHasApplication}
-              />
+              {!submissionInProgress ? (
+                <ApplicationStatusPanel
+                  uid={user.uid}
+                  onPresenceChange={setHasApplication}
+                />
+              ) : null}
 
-              {!submitted && hasApplication === false ? (
+              {!submitted &&
+              (hasApplication === false || submissionInProgress) ? (
                 <div className="mt-8 rounded-lg bg-ivory-100 p-5 text-black-900 sm:p-8">
                   <SellerApplicationForm
                     uid={user.uid}
                     email={user.email ?? ""}
+                    onSubmissionStateChange={(value) => {
+                      submissionInProgressRef.current = value;
+                      setSubmissionInProgress(value);
+                    }}
                     onSubmitted={() => {
                       setSubmitted(true);
                       router.replace("/sell-on-sidra/status?submitted=1");

@@ -52,9 +52,9 @@ const statusCopy: Record<
     step: 1,
   },
   approved: {
-    label: "Approved — payment required",
+    label: "Portfolio approved — pay the fee",
     message:
-      "Your application is approved. Complete the Studio access payment below.",
+      "Your application and portfolio are approved. Pay the Studio access fee below and submit the UTR for admin verification.",
     tone: "bg-emerald-100 text-emerald-900",
     step: 2,
   },
@@ -117,9 +117,11 @@ function formatInr(paise: number): string {
 export function ApplicationStatusPanel({
   uid,
   onPresenceChange,
+  showEmptyState = false,
 }: {
   uid: string;
   onPresenceChange?: (present: boolean) => void;
+  showEmptyState?: boolean;
 }): React.JSX.Element | null {
   const { refresh } = useAuth();
   const [application, setApplication] =
@@ -187,6 +189,30 @@ export function ApplicationStatusPanel({
   }
 
   if (!application || !current) {
+    if (showEmptyState) {
+      return (
+        <Card elevated>
+          <p className="text-micro font-semibold uppercase tracking-[.2em] text-[var(--color-dusty-rose)]">
+            No application submitted
+          </p>
+          <h2 className="mt-3 font-display text-h1 text-[var(--color-deep-plum)]">
+            Start your Studio application.
+          </h2>
+          <p className="mt-4 max-w-2xl text-caption leading-7 text-gray-700">
+            Submit the form once with 1–8 portfolio images. After that, this
+            page permanently becomes your application, payment and Studio
+            access tracker.
+          </p>
+          <Link
+            href="/sell-on-sidra"
+            className="mt-6 inline-flex min-h-12 items-center rounded-full bg-[var(--color-deep-plum)] px-6 py-3 text-caption font-semibold text-white"
+          >
+            Open application form
+          </Link>
+        </Card>
+      );
+    }
+
     return null;
   }
 
@@ -274,17 +300,23 @@ export function ApplicationStatusPanel({
         ) : null}
       </Card>
 
-      {application.status === "submissionFailed" ? (
+      {["uploading", "submissionFailed"].includes(application.status) ? (
         <Card elevated>
           <p className="text-micro font-semibold uppercase tracking-[.2em] text-rose-700">
-            Complete portfolio upload
+            {application.status === "uploading"
+              ? "Resume portfolio upload"
+              : "Complete portfolio upload"}
           </p>
           <h2 className="mt-3 font-display text-h1">
             Your details are already saved.
           </h2>
           <p className="mt-4 text-caption leading-7 text-gray-700">
-            Select 1–8 portfolio images again. This will complete the same
-            application; it will not create a duplicate request.
+            {application.portfolioImages.length > 0
+              ? `${application.portfolioImages.length} image${application.portfolioImages.length === 1 ? "" : "s"} reached secure storage before the previous upload stopped. `
+              : ""}
+            Select the complete set of 1–8 portfolio images again. This will
+            finish the same saved application and will never create a duplicate
+            request.
           </p>
 
           <input

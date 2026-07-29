@@ -441,9 +441,16 @@ service cloud.firestore {
 
     match /sellerApplications/{applicationId} {
       allow read: if founder()
-        || (signedIn() && resource.data.uid == request.auth.uid);
+        || (
+          signedIn()
+          && (
+            applicationId == uid()
+            || resource.data.uid == request.auth.uid
+          )
+        );
 
       allow create: if verified()
+        && applicationId == uid()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.status == 'uploading'
