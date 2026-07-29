@@ -26,7 +26,7 @@ export function SellerPortfolioPreview({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (image.provider !== "telegram" || !image.telegramFileId) {
+    if (image.provider !== "b2") {
       setSource(image.downloadUrl || null);
       return;
     }
@@ -42,14 +42,10 @@ export function SellerPortfolioPreview({
     void user
       .getIdToken()
       .then(async (token) => {
-        const query = new URLSearchParams({
-          fileId: image.telegramFileId ?? "",
-          ownerUid,
-          mimeType: image.contentType || "image/jpeg",
-        });
+        const query = new URLSearchParams({ path: image.path, ownerUid });
 
         const response = await fetch(
-          `/api/telegram/files?${query.toString()}`,
+          `/api/media/b2/file?${query.toString()}`,
           {
             headers: {
               authorization: `Bearer ${token}`,
@@ -96,6 +92,7 @@ export function SellerPortfolioPreview({
     image.contentType,
     image.downloadUrl,
     image.provider,
+    image.path,
     image.telegramFileId,
     ownerUid,
     user,

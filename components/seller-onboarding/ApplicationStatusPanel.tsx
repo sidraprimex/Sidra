@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { SellerPortfolioPreview } from "@/components/telegram/SellerPortfolioPreview";
+import { SellerPortfolioPreview } from "@/components/seller-onboarding/SellerPortfolioPreview";
 import { UpiPaymentQr } from "@/components/payments/UpiPaymentQr";
 import { useAuth } from "@/hooks/useAuth";
 import { getCheckoutPaymentSettings } from "@/services/paymentConfigurationService";

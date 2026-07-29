@@ -13,8 +13,8 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { phase4Firestore, phase4Storage } from "@/services/phase4Firebase";
+import { phase4Firestore } from "@/services/phase4Firebase";
+import { uploadB2Media } from "@/services/b2MediaService";
 import { getProductModerationSettings } from "@/services/productModerationService";
 import type {
   ProductDraftInput,
@@ -112,29 +112,33 @@ export async function uploadProductImages(
   productId: string,
   files: readonly File[],
 ): Promise<readonly ProductMedia[]> {
-  const storage = phase4Storage();
   const uploaded: ProductMedia[] = [];
   for (const [index, file] of files.entries()) {
     const processed = await compressProductImage(file);
     const safeName = `${Date.now()}-${index}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-    const base = `studios/${studioId}/products/${productId}`;
-    const optimizedPath = `${base}/optimized/${safeName.replace(/\.[^.]+$/, ".jpg")}`;
-    const originalPath = `${base}/original/${safeName}`;
     const [optimizedResult, originalResult] = await Promise.all([
-      uploadBytes(ref(storage, optimizedPath), processed.optimized, { contentType: "image/jpeg" }),
-      uploadBytes(ref(storage, originalPath), processed.original, { contentType: file.type }),
-    ]);
-    const [url, originalUrl] = await Promise.all([
-      getDownloadURL(optimizedResult.ref),
-      getDownloadURL(originalResult.ref),
+      uploadB2Media({
+        file: processed.optimized,
+        fileName: safeName.replace(/\.[^.]+$/, ".jpg"),
+        context: "product",
+        studioId,
+        productId,
+      }),
+      uploadB2Media({
+        file: processed.original,
+        fileName: safeName,
+        context: "product",
+        studioId,
+        productId,
+      }),
     ]);
     uploaded.push({
       id: crypto.randomUUID(),
       kind: "image",
-      url,
-      storagePath: optimizedPath,
-      originalUrl,
-      originalStoragePath: originalPath,
+      url: optimizedResult.publicUrl,
+      storagePath: optimizedResult.path,
+      originalUrl: originalResult.publicUrl,
+      originalStoragePath: originalResult.path,
       width: processed.width,
       height: processed.height,
       alt: "",

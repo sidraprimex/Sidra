@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { SellerPortfolioPreview } from "@/components/telegram/SellerPortfolioPreview";
+import { SellerPortfolioPreview } from "@/components/seller-onboarding/SellerPortfolioPreview";
 import {
   rejectSellerAccessPayment,
   reviewSellerApplication,

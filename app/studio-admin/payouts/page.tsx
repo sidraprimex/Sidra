@@ -20,5 +20,5 @@ export default function StudioPayoutsPage(): React.JSX.Element {
   }, [auth.claims?.studioId]);
   useEffect(() => { void load().catch(() => { setPayouts([]); setWithdrawals([]); }); }, [load]);
   if (auth.loading || !auth.user || !payouts || !withdrawals) return <LoadingSkeleton count={6} />;
-  return <AccountShell mode="seller" eyebrow="Seller finance" title="Wallet & withdrawals"><SellerWalletManager payouts={payouts} withdrawals={withdrawals} onReload={load} /></AccountShell>;
+  return <AccountShell mode="seller" eyebrow="Seller finance" title="Wallet & withdrawals"><SellerWalletManager studioId={auth.claims!.studioId!} payouts={payouts} withdrawals={withdrawals} onReload={load} /></AccountShell>;
 }

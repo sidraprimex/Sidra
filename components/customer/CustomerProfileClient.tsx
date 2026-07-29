@@ -14,6 +14,7 @@ import {
   saveAddress,
 } from "@/services/addressBookService";
 import { updateEditableProfile } from "@/services/userService";
+import { uploadB2Media } from "@/services/b2MediaService";
 import type { ShippingAddress } from "@/types/phase6-commerce";
 
 const emptyAddress = (): ShippingAddress => ({
@@ -237,50 +238,33 @@ export function CustomerProfileClient(): React.JSX.Element {
             type="file"
             accept="image/*"
             className="mt-2 block w-full text-sm"
-            onChange={(event) => {
+            onChange={async (event) => {
               const file = event.target.files?.[0];
 
               if (!file) {
                 return;
               }
 
-              if (file.size > 1_500_000) {
+              if (file.size > 4_000_000) {
                 setProfileMessage(
-                  "Choose an image smaller than 1.5 MB.",
+                  "Choose an image smaller than 4 MB.",
                 );
                 return;
               }
-
-              const reader = new FileReader();
-
-              reader.onload = () => {
-                const value =
-                  typeof reader.result === "string"
-                    ? reader.result
-                    : "";
-
-                if (!value || !storageKey) {
-                  return;
-                }
-
-                window.localStorage.setItem(
-                  storageKey,
-                  value,
-                );
-
-                setPhoto(value);
-                setProfileMessage(
-                  "Profile picture saved on this browser.",
-                );
-              };
-
-              reader.readAsDataURL(file);
+              setProfileMessage("Uploading profile picture…");
+              try {
+                const uploaded = await uploadB2Media({ file, fileName: file.name, context: "profile" });
+                if (storageKey) window.localStorage.setItem(storageKey, uploaded.publicUrl);
+                setPhoto(uploaded.publicUrl);
+                setProfileMessage("Profile picture uploaded. Tap Save profile to publish it.");
+              } catch (caught) {
+                setProfileMessage(caught instanceof Error ? caught.message : "Profile picture upload failed.");
+              }
             }}
           />
 
           <p className="mt-2 text-xs leading-5 text-black/50">
-            This picture stays in this browser. Clearing
-            browser data removes it.
+            Stored securely in Sidra media storage. Tap Save profile after upload.
           </p>
 
           <div className="mt-6 grid gap-4">

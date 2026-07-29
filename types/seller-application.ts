@@ -28,7 +28,7 @@ export type SellerAccessPaymentMethod = "manual" | "razorpayLink";
 export interface SellerPortfolioImage {
   path: string;
   downloadUrl: string;
-  provider?: "firebase" | "telegram";
+  provider?: "firebase" | "telegram" | "b2";
   ownerUid?: string;
   telegramFileId?: string;
   telegramFileUniqueId?: string;
@@ -67,7 +67,7 @@ export interface SellerApplication extends SellerApplicationInput {
   studioId: string | null;
   slug: string | null;
   failureReason: string | null;
-  storageProvider: "firebase" | "telegram" | null;
+  storageProvider: "firebase" | "telegram" | "b2" | null;
   telegramChatId: string | null;
   telegramHeaderMessageId: number | null;
   accessFeePaise: number;

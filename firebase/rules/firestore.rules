@@ -320,7 +320,34 @@ service cloud.firestore {
 
     match /sellerWithdrawals/{withdrawalId} {
       allow read: if financeAdmin() || ownStudio(resource.data.studioId);
-      allow write: if false;
+      allow create: if verified()
+        && seller()
+        && sameStudio(request.resource.data.studioId)
+        && request.resource.data.sellerUid == uid()
+        && request.resource.data.amountPaise is int
+        && request.resource.data.amountPaise >= 50000
+        && request.resource.data.amountPaise <= 100000000
+        && request.resource.data.method in ['upi', 'bank', 'imps']
+        && request.resource.data.destination is map
+        && request.resource.data.status == 'pending'
+        && request.resource.data.paymentReference == null
+        && request.resource.data.adminNote == null
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if financeAdmin()
+        && !(resource.data.status in ['paid', 'rejected'])
+        && request.resource.data.studioId == resource.data.studioId
+        && request.resource.data.sellerUid == resource.data.sellerUid
+        && request.resource.data.amountPaise == resource.data.amountPaise
+        && request.resource.data.method == resource.data.method
+        && request.resource.data.destination == resource.data.destination
+        && request.resource.data.status in ['processing', 'paid', 'rejected']
+        && request.resource.data.updatedAt == request.time
+        && changedOnly([
+          'status', 'paymentReference', 'adminNote', 'reviewedBy',
+          'reviewedAt', 'updatedAt'
+        ]);
+      allow delete: if false;
     }
 
     match /coupons/{couponId} {
@@ -425,7 +452,7 @@ service cloud.firestore {
         && request.resource.data.reviewNote == null
         && request.resource.data.reviewedBy == null
         && request.resource.data.failureReason == null
-        && request.resource.data.storageProvider == 'telegram'
+        && request.resource.data.storageProvider == 'b2'
         && request.resource.data.telegramChatId == null
         && request.resource.data.telegramHeaderMessageId == null
         && request.resource.data.accessFeePaise == 0
@@ -490,24 +517,21 @@ service cloud.firestore {
               'telegramHeaderMessageId',
               'updatedAt'
             ])
-            && request.resource.data.storageProvider == 'telegram'
+            && request.resource.data.storageProvider == 'b2'
             && (
               (
                 request.resource.data.status == 'pending'
                 && request.resource.data.failureReason == null
-                && request.resource.data.telegramChatId is string
-                && request.resource.data.telegramHeaderMessageId is int
+                && request.resource.data.telegramChatId == null
+                && request.resource.data.telegramHeaderMessageId == null
                 && request.resource.data.portfolioImages is list
                 && request.resource.data.portfolioImages.size() >= 1
                 && request.resource.data.portfolioImages.size() <= 8
                 && request.resource.data.portfolioImages[0].provider
-                  == 'telegram'
+                  == 'b2'
                 && request.resource.data.portfolioImages[0].ownerUid
                   == request.auth.uid
-                && request.resource.data.portfolioImages[0].telegramFileId
-                  is string
-                && request.resource.data.portfolioImages[0].telegramMessageId
-                  is int
+                && request.resource.data.portfolioImages[0].path is string
               )
               || (
                 request.resource.data.status == 'uploading'
@@ -518,21 +542,13 @@ service cloud.firestore {
                   request.resource.data.portfolioImages.size() == 0
                   || (
                     request.resource.data.portfolioImages[0].provider
-                      == 'telegram'
+                      == 'b2'
                     && request.resource.data.portfolioImages[0].ownerUid
                       == request.auth.uid
                   )
                 )
-                && (
-                  (
-                    request.resource.data.telegramChatId == null
-                    && request.resource.data.telegramHeaderMessageId == null
-                  )
-                  || (
-                    request.resource.data.telegramChatId is string
-                    && request.resource.data.telegramHeaderMessageId is int
-                  )
-                )
+                && request.resource.data.telegramChatId == null
+                && request.resource.data.telegramHeaderMessageId == null
               )
               || (
                 request.resource.data.status == 'submissionFailed'
@@ -547,7 +563,7 @@ service cloud.firestore {
                   request.resource.data.portfolioImages.size() == 0
                   || (
                     request.resource.data.portfolioImages[0].provider
-                      == 'telegram'
+                      == 'b2'
                     && request.resource.data.portfolioImages[0].ownerUid
                       == request.auth.uid
                   )

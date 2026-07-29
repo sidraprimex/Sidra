@@ -7,7 +7,8 @@ import { requestSellerWithdrawal } from "@/services/sellerWithdrawalService";
 import type { SellerPayout, SellerWithdrawal, WithdrawalMethod } from "@/types/phase7-orders";
 import { formatInr } from "@/utils/cartTotals";
 
-export function SellerWalletManager({ payouts, withdrawals, onReload }: {
+export function SellerWalletManager({ studioId, payouts, withdrawals, onReload }: {
+  readonly studioId: string;
   readonly payouts: readonly SellerPayout[];
   readonly withdrawals: readonly SellerWithdrawal[];
   readonly onReload: () => Promise<void>;
@@ -28,7 +29,7 @@ export function SellerWalletManager({ payouts, withdrawals, onReload }: {
   const submit = async () => {
     setBusy(true); setMessage(null);
     try {
-      await requestSellerWithdrawal({ amountPaise: Math.round(Number(amount) * 100), method, destination });
+      await requestSellerWithdrawal({ studioId, amountPaise: Math.round(Number(amount) * 100), method, destination });
       setAmount(""); setDestination({}); setMessage("Withdrawal request submitted for admin payment.");
       await onReload();
     } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Withdrawal request failed."); }

@@ -104,15 +104,8 @@ function slugBase(value: string): string {
   );
 }
 
-interface TelegramHeaderResponse {
-  chatId: string;
-  messageId: number;
-}
-
-interface TelegramUploadResponse {
-  telegramFileId: string;
-  telegramFileUniqueId: string;
-  telegramMessageId: number;
+interface B2UploadResponse {
+  path: string;
   fileName: string;
   contentType: string;
   size: number;
@@ -136,44 +129,17 @@ async function apiPayload<T>(response: Response): Promise<T> {
 
   if (!response.ok || !payload) {
     throw new Error(
-      payload?.error || "Sidra Telegram storage request failed.",
+      payload?.error || "Sidra media storage request failed.",
     );
   }
 
   return payload;
 }
 
-async function createTelegramApplicationHeader(
-  uid: string,
-  applicationId: string,
-  input: SellerApplicationDraftInput,
-): Promise<TelegramHeaderResponse> {
-  const token = await firebaseIdToken();
-
-  const response = await fetch(
-    "/api/telegram/seller-applications/header",
-    {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        uid,
-        applicationId,
-        ...input,
-      }),
-    },
-  );
-
-  return apiPayload<TelegramHeaderResponse>(response);
-}
-
 export async function uploadSellerPortfolio(
   uid: string,
   applicationId: string,
   files: File[],
-  replyToMessageId: number,
   onUploaded?: (
     uploaded: SellerPortfolioImage[],
     completed: number,
@@ -202,12 +168,11 @@ export async function uploadSellerPortfolio(
     body.set("file", file, file.name);
     body.set("ownerUid", uid);
     body.set("applicationId", applicationId);
-    body.set("replyToMessageId", String(replyToMessageId));
     body.set("index", String(position + 1));
     body.set("total", String(files.length));
 
     const response = await fetch(
-      "/api/telegram/seller-applications/upload",
+      "/api/media/b2/upload",
       {
         method: "POST",
         headers: {
@@ -217,16 +182,13 @@ export async function uploadSellerPortfolio(
       },
     );
 
-    const result = await apiPayload<TelegramUploadResponse>(response);
+    const result = await apiPayload<B2UploadResponse>(response);
 
     uploaded.push({
-      path: `telegram:${result.telegramFileId}`,
+      path: result.path,
       downloadUrl: "",
-      provider: "telegram",
+      provider: "b2",
       ownerUid: uid,
-      telegramFileId: result.telegramFileId,
-      telegramFileUniqueId: result.telegramFileUniqueId,
-      telegramMessageId: result.telegramMessageId,
       fileName: result.fileName || file.name,
       contentType: result.contentType || file.type,
       size: result.size || file.size,
@@ -276,7 +238,7 @@ export async function submitSellerApplication(
     studioId: null,
     slug: null,
     failureReason: null,
-    storageProvider: "telegram",
+    storageProvider: "b2",
     telegramChatId: null,
     telegramHeaderMessageId: null,
     accessFeePaise: 0,
@@ -292,24 +254,11 @@ export async function submitSellerApplication(
 
   try {
     onProgress?.("Application saved. Connecting secure portfolio storage…");
-    const telegram = await createTelegramApplicationHeader(
-      uid,
-      created.id,
-      input,
-    );
-
-    await updateDoc(created, {
-      telegramChatId: telegram.chatId,
-      telegramHeaderMessageId: telegram.messageId,
-      updatedAt: serverTimestamp(),
-    });
-
     let persistedImages: SellerPortfolioImage[] = [];
     const portfolioImages = await uploadSellerPortfolio(
       uid,
       created.id,
       files,
-      telegram.messageId,
       async (uploaded, completed, total) => {
         persistedImages = uploaded;
         onProgress?.(`Securing portfolio image ${completed} of ${total}…`);
@@ -338,7 +287,7 @@ export async function submitSellerApplication(
     await markSubmissionFailed(created.id, caught, persistedImages);
 
     throw new Error(
-      `Your application details were saved, but the Telegram portfolio upload failed. ` +
+      `Your application details were saved, but the portfolio upload failed. ` +
         `Open the application status page to retry. ${errorMessage(caught)}`,
     );
   }
@@ -376,37 +325,21 @@ export async function retrySellerPortfolioUpload(
     status: "uploading",
     portfolioImages: [],
     failureReason: null,
+    storageProvider: "b2",
+    telegramChatId: null,
+    telegramHeaderMessageId: null,
     updatedAt: serverTimestamp(),
   });
 
   let persistedImages: SellerPortfolioImage[] = [];
 
   try {
-    onProgress?.("Connecting to secure Telegram portfolio storage…");
-    let headerMessageId = application.telegramHeaderMessageId;
-
-    if (!headerMessageId) {
-      const telegram = await createTelegramApplicationHeader(
-        uid,
-        applicationId,
-        application,
-      );
-
-      headerMessageId = telegram.messageId;
-
-      await updateDoc(applicationRef, {
-        storageProvider: "telegram",
-        telegramChatId: telegram.chatId,
-        telegramHeaderMessageId: telegram.messageId,
-        updatedAt: serverTimestamp(),
-      });
-    }
+    onProgress?.("Connecting to secure Sidra portfolio storage…");
 
     const portfolioImages = await uploadSellerPortfolio(
       uid,
       applicationId,
       files,
-      headerMessageId,
       async (uploaded, completed, total) => {
         persistedImages = uploaded;
         onProgress?.(`Portfolio image ${completed} of ${total} saved…`);
@@ -419,6 +352,9 @@ export async function retrySellerPortfolioUpload(
 
     await updateDoc(applicationRef, {
       portfolioImages,
+      storageProvider: "b2",
+      telegramChatId: null,
+      telegramHeaderMessageId: null,
       status: "pending",
       failureReason: null,
       updatedAt: serverTimestamp(),
