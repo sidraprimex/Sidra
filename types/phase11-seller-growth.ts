@@ -24,7 +24,15 @@ export interface SellerCoupon {
   readonly minimumOrderPaise: number;
   readonly active: boolean;
   readonly usedCount: number;
-  readonly createdAt: string;
+  readonly createdAt: unknown;
+  readonly updatedAt?: unknown;
+}
+export interface AppliedSellerCoupon {
+  readonly couponId: string;
+  readonly studioId: string;
+  readonly code: string;
+  readonly title: string;
+  readonly discountPaise: number;
 }
 export interface CustomerSegment {
   readonly segmentId: string;
@@ -33,7 +41,8 @@ export interface CustomerSegment {
   readonly description: string;
   readonly rule: CustomerSegmentRule;
   readonly customerCount: number;
-  readonly createdAt: string;
+  readonly createdAt: unknown;
+  readonly updatedAt?: unknown;
 }
 export interface SellerCampaign {
   readonly campaignId: string;
@@ -47,5 +56,6 @@ export interface SellerCampaign {
   readonly deliveredCount: number;
   readonly openedCount: number;
   readonly clickedCount: number;
-  readonly createdAt: string;
+  readonly createdAt: unknown;
+  readonly updatedAt?: unknown;
 }

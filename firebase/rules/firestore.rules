@@ -630,11 +630,53 @@ service cloud.firestore {
     match /manualPaymentRequests/{requestId} {
       allow create: if verified()
         && request.resource.data.customerId == uid()
+        && validText(request.resource.data.addressId, 1, 180)
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 100
+        && request.resource.data.subtotalPaise is int
+        && request.resource.data.subtotalPaise > 0
+        && request.resource.data.shippingPaise is int
+        && request.resource.data.shippingPaise >= 0
+        && request.resource.data.discountPaise is int
+        && request.resource.data.discountPaise >= 0
+        && request.resource.data.discountPaise <= request.resource.data.subtotalPaise
         && request.resource.data.status == 'pendingVerification'
-        && request.resource.data.paymentReference is string
-        && request.resource.data.paymentReference.size() >= 4
+        && validText(request.resource.data.paymentReference, 4, 180)
         && request.resource.data.totalPaise is int
-        && request.resource.data.totalPaise > 0;
+        && request.resource.data.totalPaise > 0
+        && request.resource.data.totalPaise
+          == request.resource.data.subtotalPaise
+            + request.resource.data.shippingPaise
+            - request.resource.data.discountPaise
+        && (
+          (
+            request.resource.data.couponId == null
+            && request.resource.data.couponCode == null
+            && request.resource.data.couponStudioId == null
+            && request.resource.data.discountPaise == 0
+          )
+          || (
+            validText(request.resource.data.couponId, 3, 24)
+            && validText(request.resource.data.couponCode, 3, 24)
+            && validText(request.resource.data.couponStudioId, 1, 180)
+            && exists(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId))
+            && get(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId)).data.active == true
+            && get(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId)).data.code == request.resource.data.couponCode
+            && get(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId)).data.studioId == request.resource.data.couponStudioId
+          )
+        )
+        && request.resource.data.adminNote == null
+        && request.resource.data.verifiedBy == null
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.keys().hasOnly([
+          'customerId', 'addressId', 'items', 'subtotalPaise',
+          'shippingPaise', 'discountPaise', 'couponId',
+          'couponCode', 'couponStudioId', 'totalPaise',
+          'paymentReference', 'status', 'adminNote', 'verifiedBy',
+          'createdAt', 'updatedAt'
+        ]);
       allow read: if founder() || (signedIn() && resource.data.customerId == uid());
       allow update, delete: if founder();
     }
@@ -763,16 +805,121 @@ match /sellerAnalyticsSummary/{studioId} {
   allow write: if false;
 }
 match /sellerCoupons/{couponId} {
-  allow read: if resource.data.active == true || isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
-  allow write: if false;
+  allow get: if isAuthenticated();
+  allow list: if isFounder()
+    || (isSeller() && sameStudio(resource.data.studioId));
+  allow create: if (
+      isFounder()
+      || (
+        verified()
+        && isSeller()
+        && sameStudio(request.resource.data.studioId)
+      )
+    )
+    && request.resource.data.couponId == couponId
+    && request.resource.data.createdBy == request.auth.uid
+    && request.resource.data.code.matches('^[A-Z0-9_-]{3,24}$')
+    && validText(request.resource.data.title, 3, 100)
+    && request.resource.data.discountType in ['percentage', 'fixed']
+    && request.resource.data.discountValue is int
+    && (
+      (
+        request.resource.data.discountType == 'percentage'
+        && request.resource.data.discountValue >= 1
+        && request.resource.data.discountValue <= 90
+      )
+      || (
+        request.resource.data.discountType == 'fixed'
+        && request.resource.data.discountValue >= 100
+        && request.resource.data.discountValue <= 100000000
+      )
+    )
+    && request.resource.data.minimumOrderPaise is int
+    && request.resource.data.minimumOrderPaise >= 0
+    && request.resource.data.active is bool
+    && request.resource.data.usedCount == 0
+    && request.resource.data.createdAt == request.time
+    && request.resource.data.updatedAt == request.time
+    && request.resource.data.keys().hasOnly([
+      'couponId', 'studioId', 'code', 'title', 'discountType',
+      'discountValue', 'minimumOrderPaise', 'active', 'usedCount',
+      'createdBy', 'createdAt', 'updatedAt'
+    ]);
+  allow update: if isFounder()
+    || (
+      verified()
+      && isSeller()
+      && sameStudio(resource.data.studioId)
+      && request.resource.data.couponId == resource.data.couponId
+      && request.resource.data.studioId == resource.data.studioId
+      && request.resource.data.code == resource.data.code
+      && request.resource.data.createdBy == resource.data.createdBy
+      && request.resource.data.updatedAt == request.time
+      && changedOnly(['active', 'updatedAt'])
+    );
+  allow delete: if false;
 }
 match /customerSegments/{segmentId} {
-  allow read: if isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
-  allow write: if false;
+  allow read: if isFounder()
+    || (isSeller() && sameStudio(resource.data.studioId));
+  allow create: if (
+      isFounder()
+      || (
+        verified()
+        && isSeller()
+        && sameStudio(request.resource.data.studioId)
+      )
+    )
+    && request.resource.data.segmentId == segmentId
+    && request.resource.data.createdBy == request.auth.uid
+    && validText(request.resource.data.name, 3, 100)
+    && validText(request.resource.data.description, 3, 500)
+    && request.resource.data.rule in [
+      'all', 'repeatCustomers', 'highValue',
+      'inactive', 'wishlistIntent'
+    ]
+    && request.resource.data.customerCount == 0
+    && request.resource.data.createdAt == request.time
+    && request.resource.data.updatedAt == request.time
+    && request.resource.data.keys().hasOnly([
+      'segmentId', 'studioId', 'name', 'description', 'rule',
+      'customerCount', 'createdBy', 'createdAt', 'updatedAt'
+    ]);
+  allow update, delete: if isFounder();
 }
 match /sellerCampaigns/{campaignId} {
-  allow read: if isFounder() || (isSeller() && resource.data.studioId == request.auth.token.studioId);
-  allow write: if false;
+  allow read: if isFounder()
+    || (isSeller() && sameStudio(resource.data.studioId));
+  allow create: if (
+      isFounder()
+      || (
+        verified()
+        && isSeller()
+        && sameStudio(request.resource.data.studioId)
+      )
+    )
+    && request.resource.data.campaignId == campaignId
+    && request.resource.data.createdBy == request.auth.uid
+    && validText(request.resource.data.name, 3, 100)
+    && validText(request.resource.data.subject, 3, 140)
+    && validText(request.resource.data.message, 10, 5000)
+    && validText(request.resource.data.segmentId, 1, 180)
+    && exists(/databases/$(database)/documents/customerSegments/$(request.resource.data.segmentId))
+    && get(/databases/$(database)/documents/customerSegments/$(request.resource.data.segmentId)).data.studioId == request.resource.data.studioId
+    && request.resource.data.status == 'draft'
+    && request.resource.data.sentCount == 0
+    && request.resource.data.deliveredCount == 0
+    && request.resource.data.openedCount == 0
+    && request.resource.data.clickedCount == 0
+    && request.resource.data.createdAt == request.time
+    && request.resource.data.updatedAt == request.time
+    && request.resource.data.keys().hasOnly([
+      'campaignId', 'studioId', 'name', 'subject', 'message',
+      'segmentId', 'status', 'sentCount', 'deliveredCount',
+      'openedCount', 'clickedCount', 'createdBy',
+      'createdAt', 'updatedAt'
+    ]);
+  allow update, delete: if isFounder();
 }
 
     // PHASE_13_HARDENING_AND_LAUNCH

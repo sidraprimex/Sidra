@@ -2,11 +2,13 @@ import {
   collection,
   doc,
   getDoc,
+  increment,
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { CartLineItem, ShippingAddress } from "@/types/phase6-commerce";
+import type { SellerCoupon } from "@/types/phase11-seller-growth";
 
 interface ManualRequestRecord {
   customerId: string;
@@ -14,6 +16,10 @@ interface ManualRequestRecord {
   items: readonly CartLineItem[];
   subtotalPaise: number;
   shippingPaise: number;
+  discountPaise?: number;
+  couponId?: string | null;
+  couponCode?: string | null;
+  couponStudioId?: string | null;
   totalPaise: number;
   paymentReference: string;
   status: string;
@@ -26,6 +32,23 @@ interface ProductCostingRecord {
 
 function orderNumber(index: number): string {
   return `SDR-${Date.now().toString(36).toUpperCase()}-${String(index + 1).padStart(2, "0")}`;
+}
+
+function couponDiscountPaise(
+  coupon: SellerCoupon,
+  eligibleSubtotalPaise: number,
+): number {
+  if (coupon.discountType === "percentage") {
+    return Math.floor(
+      eligibleSubtotalPaise *
+        Math.min(90, Math.max(0, coupon.discountValue)) /
+        100,
+    );
+  }
+  return Math.min(
+    eligibleSubtotalPaise,
+    Math.max(0, coupon.discountValue),
+  );
 }
 
 export async function verifyManualMarketplacePayment(
@@ -68,6 +91,83 @@ export async function verifyManualMarketplacePayment(
     byStudio.set(item.studioId, [...(byStudio.get(item.studioId) ?? []), item]);
   }
 
+  const calculatedSubtotalPaise = paymentRequest.items.reduce(
+    (sum, item) => sum + item.unitPricePaise * item.quantity,
+    0,
+  );
+  const calculatedShippingPaise = byStudio.size * 9900;
+  if (
+    paymentRequest.subtotalPaise !== calculatedSubtotalPaise ||
+    paymentRequest.shippingPaise !== calculatedShippingPaise
+  ) {
+    throw new Error(
+      "Payment totals do not match the submitted cart. Reject this request.",
+    );
+  }
+
+  let verifiedDiscountPaise = 0;
+  let couponRef: ReturnType<typeof doc> | null = null;
+  if (paymentRequest.couponId) {
+    couponRef = doc(
+      db,
+      "sellerCoupons",
+      paymentRequest.couponId,
+    );
+    const couponSnapshot = await getDoc(couponRef);
+    if (!couponSnapshot.exists()) {
+      throw new Error(
+        "The coupon attached to this payment no longer exists.",
+      );
+    }
+    const coupon = {
+      ...couponSnapshot.data(),
+      couponId: couponSnapshot.id,
+    } as SellerCoupon;
+    if (
+      coupon.code !== paymentRequest.couponCode ||
+      coupon.studioId !== paymentRequest.couponStudioId
+    ) {
+      throw new Error(
+        "Coupon details do not match the submitted payment.",
+      );
+    }
+    const eligibleItems = byStudio.get(coupon.studioId) ?? [];
+    const eligibleSubtotalPaise = eligibleItems.reduce(
+      (sum, item) => sum + item.unitPricePaise * item.quantity,
+      0,
+    );
+    if (
+      eligibleSubtotalPaise < coupon.minimumOrderPaise ||
+      eligibleSubtotalPaise <= 0
+    ) {
+      throw new Error(
+        "This order does not satisfy the coupon minimum.",
+      );
+    }
+    verifiedDiscountPaise = couponDiscountPaise(
+      coupon,
+      eligibleSubtotalPaise,
+    );
+  } else if (
+    paymentRequest.couponCode ||
+    paymentRequest.couponStudioId
+  ) {
+    throw new Error("Incomplete coupon details were submitted.");
+  }
+
+  if (
+    Number(paymentRequest.discountPaise ?? 0) !==
+      verifiedDiscountPaise ||
+    paymentRequest.totalPaise !==
+      calculatedSubtotalPaise +
+        calculatedShippingPaise -
+        verifiedDiscountPaise
+  ) {
+    throw new Error(
+      "Payment discount or total is invalid. Reject this request.",
+    );
+  }
+
   const batch = writeBatch(db);
   const orderIds: string[] = [];
   let studioIndex = 0;
@@ -81,6 +181,10 @@ export async function verifyManualMarketplacePayment(
       0,
     );
     const shippingPaise = 9900;
+    const discountPaise =
+      studioId === paymentRequest.couponStudioId
+        ? verifiedDiscountPaise
+        : 0;
     const sellerCostPaise = items.reduce((sum, item) => {
       const cost = costByProduct.get(item.productId);
       return sum + (
@@ -88,7 +192,10 @@ export async function verifyManualMarketplacePayment(
         Number(cost?.sellerShippingCostPaise ?? 0)
       ) * item.quantity;
     }, 0);
-    const profitPaise = Math.max(0, subtotalPaise - sellerCostPaise);
+    const profitPaise = Math.max(
+      0,
+      subtotalPaise - discountPaise - sellerCostPaise,
+    );
     const timeline = [{
       id: crypto.randomUUID(),
       status: "placed",
@@ -122,7 +229,11 @@ export async function verifyManualMarketplacePayment(
       paymentStatus: "paid",
       subtotalPaise,
       shippingPaise,
-      totalPaise: subtotalPaise + shippingPaise,
+      discountPaise,
+      couponCode:
+        discountPaise > 0 ? paymentRequest.couponCode : null,
+      totalPaise:
+        subtotalPaise + shippingPaise - discountPaise,
       sellerCostPaise,
       profitPaise,
       subscriptionPlan: studio.subscriptionPlan ?? "commission",
@@ -187,6 +298,12 @@ export async function verifyManualMarketplacePayment(
     verifiedBy: adminUid,
     createdAt: serverTimestamp(),
   });
+  if (couponRef) {
+    batch.update(couponRef, {
+      usedCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  }
   batch.update(requestRef, {
     status: "verified",
     verifiedBy: adminUid,

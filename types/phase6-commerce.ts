@@ -39,6 +39,9 @@ export interface CheckoutDraft {
   readonly subtotalPaise: number;
   readonly shippingPaise: number;
   readonly discountPaise: number;
+  readonly couponId: string | null;
+  readonly couponCode: string | null;
+  readonly couponStudioId: string | null;
   readonly totalPaise: number;
   readonly studioCount: number;
   readonly shipmentCount: number;
