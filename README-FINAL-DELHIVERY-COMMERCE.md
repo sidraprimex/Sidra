@@ -27,7 +27,7 @@ Optional endpoint overrides are documented in `.env.example`.
 4. Confirm staged made-to-order funding and the dispute window.
 5. Confirm Delhivery shipping-cost allocation, delivery OTP, shipment
    protection and the 72-hour claim window.
-6. Confirm KYC fields. Sellers submit masked identity metadata and private B2
+6. Confirm KYC fields. Bank details are optional by default; sellers submit masked identity metadata and private B2
    documents under Studio → Verification & pickup.
 7. Review KYC inside Admin OS → Seller verification. Verification copies the
    approved pickup address to the Studio and unlocks Ready to Ship.

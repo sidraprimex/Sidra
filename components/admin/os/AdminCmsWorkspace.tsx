@@ -174,7 +174,7 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
           <label className="mt-4 flex items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={kyc.enabled} onChange={(event) => setKyc((current) => ({ ...current, enabled: event.target.checked }))} />KYC enabled</label>
           <label className="mt-4 grid gap-2 text-sm font-semibold">Verification level<select value={kyc.level} onChange={(event) => setKyc((current) => ({ ...current, level: event.target.value as SellerKycSettings["level"] }))} className="rounded-xl border border-black/10 px-3 py-2"><option value="basic">Basic</option><option value="standard">Standard</option><option value="enhanced">Enhanced</option></select></label>
           {([["requirePan","PAN"],["requireIdentityProof","Identity proof"],["requireBankDetails","Bank details"],["requirePickupAddress","Pickup address"]] as const).map(([key, label]) => <label key={key} className="mt-4 flex items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={kyc[key]} onChange={(event) => setKyc((current) => ({ ...current, [key]: event.target.checked }))} />Require {label}</label>)}
-          <p className="mt-5 text-xs leading-6 text-gray-600">Sensitive documents stay private in B2. Only masked last-four metadata is stored in Firestore.</p>
+          <p className="mt-5 text-xs leading-6 text-gray-600">Bank details are optional by default because sellers can choose UPI, bank transfer or IMPS during withdrawal. Sensitive identity documents stay private in B2. Only masked last-four metadata is stored in Firestore.</p>
         </Card>
       </div>
       {message ? <p className="rounded-2xl border border-black/10 bg-white p-4 text-sm">{message}</p> : null}

@@ -64,7 +64,7 @@ export const defaultSellerKycSettings: SellerKycSettings = {
   requirePan: true,
   requireIdentityProof: true,
   acceptedIdentityProofs: ["aadhaar", "voterId", "passport"],
-  requireBankDetails: true,
+  requireBankDetails: false,
   requirePickupAddress: true,
   documentStorageProvider: "b2",
 };

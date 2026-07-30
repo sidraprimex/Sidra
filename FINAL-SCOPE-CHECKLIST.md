@@ -51,7 +51,7 @@
 
 - Founder can enable/disable KYC and choose basic, standard or enhanced
   requirements.
-- PAN, identity proof, bank and pickup requirements are individually editable.
+- PAN, identity proof, bank and pickup requirements are individually editable. Bank details are optional by default; sellers choose UPI, bank transfer or IMPS when withdrawing.
 - Only masked last-four identity metadata is stored in Firestore.
 - Supporting images/PDFs are stored privately in B2.
 - Admin can open private verification files, verify pickup/KYC or request
