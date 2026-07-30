@@ -20,7 +20,11 @@ export const foundationContent: FoundationContent = {
         { id: "privacy", label: "Privacy Policy", href: "/privacy" },
         { id: "terms", label: "Terms & Conditions", href: "/terms" },
         { id: "refund", label: "No-Refund Policy", href: "/no-refund-policy" },
-        { id: "shipping", label: "Shipping Policy", href: "/shipping-policy" }
+        { id: "shipping", label: "Shipping Policy", href: "/shipping-policy" },
+        { id: "cancellation", label: "Cancellation & Refund", href: "/cancellation-policy" },
+        { id: "claims", label: "Damage & Claims", href: "/damage-claims-policy" },
+        { id: "seller", label: "Seller Agreement", href: "/seller-agreement" },
+        { id: "payout", label: "Payout & Recovery", href: "/payout-recovery-policy" }
       ] }
     ],
     legalLine: `© ${new Date().getFullYear()} Sidra. All rights reserved.`

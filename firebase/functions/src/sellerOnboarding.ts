@@ -66,9 +66,9 @@ function dependencies(): ProvisioningDependencies {
           studioId: state.studioId, ownerUid: context.uid, name: context.studioName, slug: null,
           description: "", logoUrl: null, bannerUrl: null, galleryUrls: [], category: null,
           followerCount: 0, rating: 0, reviewCount: 0, totalOrders: 0, revenueTotal: 0,
-          subscriptionTier: "starter", subscriptionPlan: "commission",
+          subscriptionTier: "starter", subscriptionPlan: "free",
           subscriptionMonthlyFeePaise: 0, commissionRateBasisPoints: 1200,
-          subscriptionStatus: "commission", verificationBadge: "none", featured: false, active: false,
+          subscriptionStatus: "active", verificationBadge: "none", featured: false, active: false,
           provisioningState: "provisioning", seo: { title: context.studioName, description: "", ogImage: null },
           policies: { shipping: "", returns: "", customOrderTerms: "" }, createdAt: now(), updatedAt: now(),
         });

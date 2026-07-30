@@ -18,7 +18,7 @@ export interface RuntimeTextOverride {
 }
 
 export function watchRuntimePolicy(
-  policyId: "privacy" | "noRefund" | "shipping" | "terms",
+  policyId: "privacy" | "noRefund" | "shipping" | "terms" | "cancellation" | "damageClaims" | "sellerAgreement" | "payoutRecovery",
   onValue: (value: RuntimePolicyOverride | null) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe {

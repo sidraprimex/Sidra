@@ -60,6 +60,11 @@ function normalizeApplication(
     telegramHeaderMessageId: data.telegramHeaderMessageId ?? null,
     accessFeePaise:
       typeof data.accessFeePaise === "number" ? data.accessFeePaise : 0,
+    installmentAmountsPaise: Array.isArray(data.installmentAmountsPaise)
+      ? data.installmentAmountsPaise.filter((item): item is number => typeof item === "number")
+      : [],
+    paymentAmountPaise: typeof data.paymentAmountPaise === "number" ? data.paymentAmountPaise : 0,
+    paymentInstallmentNumber: typeof data.paymentInstallmentNumber === "number" ? data.paymentInstallmentNumber : null,
     paymentMethod: data.paymentMethod ?? null,
     paymentReference: data.paymentReference ?? null,
     paymentSubmittedAt: data.paymentSubmittedAt ?? null,
@@ -262,6 +267,9 @@ export async function submitSellerApplication(
       telegramChatId: null,
       telegramHeaderMessageId: null,
       accessFeePaise: 0,
+      installmentAmountsPaise: [],
+      paymentAmountPaise: 0,
+      paymentInstallmentNumber: null,
       paymentMethod: null,
       paymentReference: null,
       createdAt: serverTimestamp(),
@@ -454,6 +462,8 @@ export async function submitSellerAccessPayment(params: {
   applicationId: string;
   method: SellerAccessPaymentMethod;
   reference: string;
+  amountPaise?: number;
+  installmentNumber?: number | null;
 }): Promise<void> {
   const { db } = requireServices();
   const applicationRef = doc(db, COLLECTION, params.applicationId);
@@ -489,11 +499,18 @@ export async function submitSellerAccessPayment(params: {
         "The Studio access fee has not been published by admin yet.",
       );
     }
+    const amountPaise = Math.round(params.amountPaise ?? application.accessFeePaise);
+    const allowedAmounts = [application.accessFeePaise, ...application.installmentAmountsPaise];
+    if (amountPaise <= 0 || !allowedAmounts.includes(amountPaise)) {
+      throw new Error("Choose the full fee or a published installment amount.");
+    }
 
     transaction.update(applicationRef, {
       status: "paymentSubmitted",
       paymentMethod: params.method,
       paymentReference: reference.slice(0, 180),
+      paymentAmountPaise: amountPaise,
+      paymentInstallmentNumber: params.installmentNumber ?? null,
       paymentSubmittedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -564,9 +581,10 @@ export async function reviewSellerApplication(params: {
       return;
     }
 
-    const paymentSnapshot = await transaction.get(
-      doc(db, "settings", "payments"),
-    );
+    const [paymentSnapshot, commerceSnapshot] = await Promise.all([
+      transaction.get(doc(db, "settings", "payments")),
+      transaction.get(doc(db, "settings", "sellerCommerce")),
+    ]);
 
     const paymentSettings = {
       ...defaultPaymentSettings,
@@ -575,10 +593,14 @@ export async function reviewSellerApplication(params: {
         : {}),
     };
 
+    const commerce = commerceSnapshot.data() ?? {};
     const accessFeePaise = Math.max(
       0,
-      Math.round(Number(paymentSettings.sellerAccessFeePaise) || 0),
+      Math.round(Number(commerce.onboardingFeePaise ?? paymentSettings.sellerAccessFeePaise) || 0),
     );
+    const installmentAmountsPaise = Array.isArray(commerce.installmentAmountsPaise)
+      ? commerce.installmentAmountsPaise.filter((item): item is number => typeof item === "number" && item > 0)
+      : [];
 
     if (accessFeePaise <= 0) {
       throw new Error(
@@ -589,6 +611,9 @@ export async function reviewSellerApplication(params: {
     transaction.update(applicationRef, {
       status: "approved",
       accessFeePaise,
+      installmentAmountsPaise,
+      paymentAmountPaise: 0,
+      paymentInstallmentNumber: null,
       reviewNote:
         params.note.trim().slice(0, 2000) ||
         "Approved by Sidra admin. Complete the Studio access payment to continue.",
@@ -637,6 +662,8 @@ export async function rejectSellerAccessPayment(
       reviewNote: note.trim().slice(0, 2000),
       paymentMethod: null,
       paymentReference: null,
+      paymentAmountPaise: 0,
+      paymentInstallmentNumber: null,
       paymentSubmittedAt: null,
       updatedAt: serverTimestamp(),
     });
@@ -723,10 +750,13 @@ export async function verifySellerAccessPayment(
       totalOrders: 0,
       revenueTotal: 0,
       subscriptionTier: "starter",
-      subscriptionPlan: "commission",
+      subscriptionPlan: "free",
       subscriptionMonthlyFeePaise: 0,
       commissionRateBasisPoints: 1200,
-      subscriptionStatus: "commission",
+      subscriptionStatus: "active",
+      onboardingFeePaise: application.accessFeePaise,
+      onboardingPaidPaise: application.paymentAmountPaise || application.accessFeePaise,
+      onboardingInstallmentStatus: (application.paymentAmountPaise || application.accessFeePaise) >= application.accessFeePaise ? "paid" : "active",
       verificationBadge: "verified",
       verified: true,
       featured: false,
@@ -797,12 +827,31 @@ export async function verifySellerAccessPayment(
         application.paymentMethod === "razorpayLink"
           ? "razorpayLink"
           : "manualUpi",
-      amount: application.accessFeePaise,
+      amount: application.paymentAmountPaise || application.accessFeePaise,
       currency: "INR",
       status: "succeeded",
       gatewayTransactionId: application.paymentReference,
       paymentType: "sellerAccess",
+      installmentNumber: application.paymentInstallmentNumber,
       verifiedBy: admin.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(doc(db, "sellerInstallmentSchedules", studioId), {
+      studioId,
+      sellerUid: application.uid,
+      applicationId,
+      totalPaise: application.accessFeePaise,
+      paidPaise: application.paymentAmountPaise || application.accessFeePaise,
+      installments: application.installmentAmountsPaise.map((amountPaise, index) => ({
+        number: index + 1,
+        amountPaise,
+        status: index + 1 === application.paymentInstallmentNumber ? "paid" : "pending",
+      })),
+      accessMode: "full",
+      overdueRestrictionMode: "gradual",
+      status: (application.paymentAmountPaise || application.accessFeePaise) >= application.accessFeePaise ? "paid" : "active",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

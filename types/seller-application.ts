@@ -71,6 +71,9 @@ export interface SellerApplication extends SellerApplicationInput {
   telegramChatId: string | null;
   telegramHeaderMessageId: number | null;
   accessFeePaise: number;
+  installmentAmountsPaise: number[];
+  paymentAmountPaise: number;
+  paymentInstallmentNumber: number | null;
   paymentMethod: SellerAccessPaymentMethod | null;
   paymentReference: string | null;
   createdAt: DateTimeValue;

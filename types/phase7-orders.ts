@@ -41,6 +41,17 @@ export interface ShippingPackage {
   readonly trackingNumber: string;
   readonly estimatedDeliveryDate: string;
   readonly dispatchedAt: string | null;
+  readonly provider?: "delhivery";
+  readonly awb?: string;
+  readonly pickupRequestId?: string | null;
+  readonly pickupLocation?: string;
+  readonly labelAvailable?: boolean;
+  readonly status?: string;
+  readonly statusType?: string;
+  readonly lastLocation?: string | null;
+  readonly events?: readonly import("@/types/logistics").ShipmentEvent[];
+  readonly shippingChargePaise?: number | null;
+  readonly costAllocation?: import("@/types/logistics").ShippingCostAllocation;
 }
 
 export interface FulfilmentOrder {

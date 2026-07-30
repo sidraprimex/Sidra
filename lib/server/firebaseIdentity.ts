@@ -14,7 +14,7 @@ interface IdentityToolkitResponse {
   users?: IdentityToolkitUser[];
 }
 
-function bearerToken(request: Request): string {
+export function firebaseBearerToken(request: Request): string {
   const authorization = request.headers.get("authorization") ?? "";
   const [scheme, token] = authorization.split(" ");
 
@@ -42,7 +42,7 @@ export async function verifyFirebaseRequest(
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        idToken: bearerToken(request),
+        idToken: firebaseBearerToken(request),
       }),
       cache: "no-store",
     },

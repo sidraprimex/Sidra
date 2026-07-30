@@ -7,6 +7,7 @@ import {
   getDocs,
   limit,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -32,6 +33,7 @@ const SNAPSHOT_COLLECTIONS = {
   sellerSubscriptionRequests: "sellerSubscriptionRequests",
   payouts: "payouts",
   sellerWithdrawals: "sellerWithdrawals",
+  sellerVerifications: "sellerVerifications",
   auditLogs: "adminAuditLogs",
 } as const;
 
@@ -198,5 +200,79 @@ export function saveIntegrationSettings(
     actorUid: value.updatedBy,
     action: "integrations.configure",
     summary: "Updated public integration status and provider settings",
+  });
+}
+
+export async function markOrderDeliveredAndSettle(input: {
+  orderId: string;
+  actorUid: string;
+}): Promise<void> {
+  const { db } = requireFirebaseServices();
+  await runTransaction(db, async (transaction) => {
+    const orderRef = doc(db, "orders", input.orderId);
+    const ledgerRef = doc(db, "shippingLedgers", input.orderId);
+    const [orderSnapshot, ledgerSnapshot, settingsSnapshot] = await Promise.all([
+      transaction.get(orderRef),
+      transaction.get(ledgerRef),
+      transaction.get(doc(db, "settings", "sellerCommerce")),
+    ]);
+    if (!orderSnapshot.exists()) throw new Error("Order not found.");
+    const order = orderSnapshot.data();
+    const ledger = ledgerSnapshot.data() ?? {};
+    const actualShippingPaise = Math.max(0, Number(ledger.actualChargePaise ?? order.shippingPaise ?? 0));
+    const profitPaise = Math.max(0,
+      Number(order.subtotalPaise ?? 0)
+      - Number(order.discountPaise ?? 0)
+      - Number(order.sellerMakingCostPaise ?? order.sellerCostPaise ?? 0)
+      - actualShippingPaise,
+    );
+    const commissionBasisPoints = Math.max(0, Math.min(10_000, Number(order.commissionRateBasisPoints ?? 1200)));
+    const commissionPaise = Math.round(profitPaise * commissionBasisPoints / 10_000);
+    const disputeWindowDays = Math.max(0, Number(order.disputeWindowDays ?? settingsSnapshot.data()?.disputeWindowDays ?? 3));
+    const availableAfter = new Date(Date.now() + disputeWindowDays * 86_400_000).toISOString();
+    transaction.update(orderRef, {
+      orderStatus: "delivered",
+      profitPaise,
+      actualShippingPaise,
+      timeline: [
+        ...(Array.isArray(order.timeline) ? order.timeline : []),
+        {
+          id: crypto.randomUUID(),
+          status: "delivered",
+          label: "Delivery verified by Sidra admin",
+          actorId: input.actorUid,
+          actorRole: "admin",
+          reason: null,
+          createdAt: new Date().toISOString(),
+          customerVisible: true,
+        },
+      ],
+      updatedAt: serverTimestamp(),
+    });
+    const payoutRef = doc(db, "payouts", `profit-${input.orderId}`);
+    transaction.set(payoutRef, {
+      payoutId: payoutRef.id,
+      orderId: input.orderId,
+      studioId: order.studioId,
+      sellerUid: order.sellerUid ?? null,
+      type: "profitSettlement",
+      grossPaise: profitPaise,
+      commissionPaise,
+      sellerAmountPaise: Math.max(0, profitPaise - commissionPaise),
+      commissionBasisPoints,
+      subscriptionPlan: order.subscriptionPlan ?? "free",
+      actualShippingPaise,
+      status: disputeWindowDays > 0 ? "pending" : "available",
+      availableAfter,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  });
+  await writeAudit({
+    actorUid: input.actorUid,
+    action: "order.delivery.settle",
+    entityType: "orders",
+    entityId: input.orderId,
+    summary: "Verified delivery and created post-dispute profit settlement",
   });
 }

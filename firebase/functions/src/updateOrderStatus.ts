@@ -60,8 +60,13 @@ export const updateOrderStatus = onCall(async (request) => {
     if (nextStatus === "readyToShip") update.shippingPackage = shippingPackage;
 
     if (nextStatus === "delivered") {
-      const plan = String(order.subscriptionPlan ?? "commission");
+      const plan = String(order.subscriptionPlan ?? "free");
       const maximumByPlan: Readonly<Record<string, number>> = {
+        free: 1200,
+        starter: 1000,
+        growth: 400,
+        luxury: 100,
+        custom: 1200,
         commission: 1200,
         monthly500: 1000,
         monthly2000: 200,
@@ -71,7 +76,20 @@ export const updateOrderStatus = onCall(async (request) => {
         Number(order.commissionRateBasisPoints ?? maximumByPlan[plan] ?? 1200),
       );
       const rate = Math.min(maximumByPlan[plan] ?? 1200, configuredRate);
-      const profitPaise = Math.max(0, Number(order.profitPaise ?? 0));
+      const shippingLedgerSnapshot = await transaction.get(
+        db.collection("shippingLedgers").doc(orderId),
+      );
+      const actualShippingPaise = Math.max(
+        0,
+        Number(shippingLedgerSnapshot.data()?.actualChargePaise ?? order.shippingPaise ?? 0),
+      );
+      const profitPaise = Math.max(
+        0,
+        Number(order.subtotalPaise ?? 0)
+          - Number(order.discountPaise ?? 0)
+          - Number(order.sellerMakingCostPaise ?? order.sellerCostPaise ?? 0)
+          - actualShippingPaise,
+      );
       const config: CommissionConfig = {
         mode: "percentage",
         percentageBasisPoints: rate,
@@ -95,10 +113,32 @@ export const updateOrderStatus = onCall(async (request) => {
         sellerAmountPaise: profitPaise - commissionPaise,
         commissionBasisPoints: rate,
         subscriptionPlan: plan,
+        actualShippingPaise,
         status: "available",
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
+    }
+
+    if (nextStatus === "qualityCheck") {
+      const makingAdvancePaise = Math.max(0, Number(order.makingAdvancePaise ?? 0));
+      if (makingAdvancePaise > 0) {
+        const makingRef = db.collection("payouts").doc(`making-${orderId}`);
+        const makingSnapshot = await transaction.get(makingRef);
+        if (!makingSnapshot.exists) transaction.create(makingRef, {
+          payoutId: makingRef.id,
+          orderId,
+          studioId: order.studioId,
+          sellerUid: order.sellerUid ?? null,
+          type: "makingAdvance",
+          grossPaise: makingAdvancePaise,
+          commissionPaise: 0,
+          sellerAmountPaise: makingAdvancePaise,
+          status: "available",
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
     }
 
     transaction.update(orderRef, update);

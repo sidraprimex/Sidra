@@ -47,6 +47,6 @@ export async function b2Request(method: "GET" | "PUT", objectPath: string, body?
 }
 
 export function safeB2FileName(value: string): string {
-  const extension = value.toLowerCase().match(/\.[a-z0-9]{1,8}$/)?.[0] ?? ".jpg";
+  const extension = value.toLowerCase().match(/\.[a-z0-9]{1,8}$/)?.[0] ?? ".bin";
   return `${crypto.randomUUID()}${extension}`;
 }

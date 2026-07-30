@@ -9,6 +9,7 @@ import {
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { CartLineItem, ShippingAddress } from "@/types/phase6-commerce";
 import type { SellerCoupon } from "@/types/phase11-seller-growth";
+import { getSellerCommerceSettings } from "@/services/businessConfigurationService";
 
 interface ManualRequestRecord {
   customerId: string;
@@ -23,11 +24,13 @@ interface ManualRequestRecord {
   totalPaise: number;
   paymentReference: string;
   status: string;
+  acceptedPolicies?: Readonly<Record<string, string>>;
 }
 
 interface ProductCostingRecord {
   makingCostPaise?: number;
   sellerShippingCostPaise?: number;
+  inventoryMode?: string;
 }
 
 function orderNumber(index: number): string {
@@ -79,12 +82,18 @@ export async function verifyManualMarketplacePayment(
   if (!customerSnapshot.exists()) throw new Error("Customer profile is missing.");
   const customer = customerSnapshot.data();
 
-  const costEntries = await Promise.all(
+  const [costEntries, commerceSettings] = await Promise.all([Promise.all(
     paymentRequest.items.map(async (item) => {
-      const snapshot = await getDoc(doc(db, "productCostings", item.productId));
-      return [item.productId, snapshot.exists() ? snapshot.data() as ProductCostingRecord : {}] as const;
+      const [costSnapshot, productSnapshot] = await Promise.all([
+        getDoc(doc(db, "productCostings", item.productId)),
+        getDoc(doc(db, "products", item.productId)),
+      ]);
+      return [item.productId, {
+        ...(costSnapshot.exists() ? costSnapshot.data() : {}),
+        inventoryMode: productSnapshot.data()?.inventoryMode,
+      } as ProductCostingRecord] as const;
     }),
-  );
+  ), getSellerCommerceSettings()]);
   const costByProduct = new Map(costEntries);
   const byStudio = new Map<string, CartLineItem[]>();
   for (const item of paymentRequest.items) {
@@ -187,15 +196,21 @@ export async function verifyManualMarketplacePayment(
         : 0;
     const sellerCostPaise = items.reduce((sum, item) => {
       const cost = costByProduct.get(item.productId);
-      return sum + (
-        Number(cost?.makingCostPaise ?? 0) +
-        Number(cost?.sellerShippingCostPaise ?? 0)
-      ) * item.quantity;
+      return sum + Number(cost?.makingCostPaise ?? 0) * item.quantity;
     }, 0);
     const profitPaise = Math.max(
       0,
       subtotalPaise - discountPaise - sellerCostPaise,
     );
+    const madeToOrder = items.some((item) => costByProduct.get(item.productId)?.inventoryMode === "madeToOrder");
+    const materialAdvancePaise = !madeToOrder || commerceSettings.productionFundingMode === "none"
+      ? 0
+      : commerceSettings.productionFundingMode === "fullCost"
+        ? sellerCostPaise
+        : Math.round(sellerCostPaise * commerceSettings.materialAdvancePercent / 100);
+    const makingAdvancePaise = !madeToOrder
+      ? 0
+      : Math.max(0, sellerCostPaise - materialAdvancePaise);
     const timeline = [{
       id: crypto.randomUUID(),
       status: "placed",
@@ -235,11 +250,17 @@ export async function verifyManualMarketplacePayment(
       totalPaise:
         subtotalPaise + shippingPaise - discountPaise,
       sellerCostPaise,
+      sellerMakingCostPaise: sellerCostPaise,
       profitPaise,
-      subscriptionPlan: studio.subscriptionPlan ?? "commission",
+      fundingMode: madeToOrder ? commerceSettings.productionFundingMode : "none",
+      materialAdvancePaise,
+      makingAdvancePaise,
+      disputeWindowDays: commerceSettings.disputeWindowDays,
+      subscriptionPlan: studio.subscriptionPlan ?? "free",
       commissionRateBasisPoints: Number(studio.commissionRateBasisPoints ?? 1200),
       manualPaymentRequestId: requestId,
       paymentReference: paymentRequest.paymentReference,
+      acceptedPolicies: paymentRequest.acceptedPolicies ?? {},
       shippingAddress: address,
       shippingPackage: null,
       invoiceUrl: "",
@@ -249,17 +270,17 @@ export async function verifyManualMarketplacePayment(
       updatedAt: serverTimestamp(),
     });
 
-    const advanceRef = doc(db, "payouts", `advance-${orderRef.id}`);
-    batch.set(advanceRef, {
+    const advanceRef = doc(db, "payouts", `material-${orderRef.id}`);
+    if (materialAdvancePaise > 0) batch.set(advanceRef, {
       payoutId: advanceRef.id,
       orderId: orderRef.id,
       studioId,
       sellerUid: studio.ownerUid ?? null,
-      type: "productionAdvance",
-      grossPaise: sellerCostPaise,
+      type: "materialAdvance",
+      grossPaise: materialAdvancePaise,
       commissionPaise: 0,
-      sellerAmountPaise: sellerCostPaise,
-      status: "pending",
+      sellerAmountPaise: materialAdvancePaise,
+      status: "available",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

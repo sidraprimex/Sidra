@@ -12,10 +12,11 @@ import {
 } from "firebase/firestore";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import {
-  SELLER_PLANS,
   type SellerSubscriptionPlan,
   type SellerSubscriptionRequest,
+  type SellerInstallmentSchedule,
 } from "@/types/seller-subscription";
+import { getSellerCommerceSettings } from "@/services/businessConfigurationService";
 
 function normalize(id: string, data: Record<string, unknown>): SellerSubscriptionRequest {
   return { id, ...data } as unknown as SellerSubscriptionRequest;
@@ -38,16 +39,34 @@ export function watchStudioSubscriptionRequests(
   );
 }
 
+export function watchSellerInstallmentSchedule(
+  studioId: string,
+  onValue: (value: SellerInstallmentSchedule | null) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  const { db } = requireFirebaseServices();
+  return onSnapshot(
+    doc(db, "sellerInstallmentSchedules", studioId),
+    (snapshot) => onValue(snapshot.exists() ? snapshot.data() as SellerInstallmentSchedule : null),
+    onError,
+  );
+}
+
 export async function submitSellerSubscriptionRequest(params: {
   readonly studioId: string;
   readonly sellerUid: string;
-  readonly plan: Exclude<SellerSubscriptionPlan, "commission">;
+  readonly plan: Exclude<SellerSubscriptionPlan, "free">;
   readonly paymentReference: string;
 }): Promise<string> {
   const { db } = requireFirebaseServices();
   const reference = params.paymentReference.trim();
   if (reference.length < 4) throw new Error("Enter a valid UTR/payment reference.");
-  const definition = SELLER_PLANS[params.plan];
+  const settings = await getSellerCommerceSettings();
+  const definition = settings.plans.find((item) => item.id === params.plan && item.enabled);
+  if (!definition) throw new Error("This plan is not currently available.");
+  if (definition.monthlyFeePaise <= 0 && params.plan === "custom") {
+    throw new Error("Ask Sidra admin to configure your custom plan price first.");
+  }
   const created = await addDoc(collection(db, "sellerSubscriptionRequests"), {
     studioId: params.studioId,
     sellerUid: params.sellerUid,
@@ -88,7 +107,7 @@ export async function reviewSellerSubscriptionRequest(params: {
     if (params.decision === "approved") {
       transaction.update(doc(db, "studios", request.studioId), {
         subscriptionPlan: request.plan,
-        subscriptionTier: request.plan === "monthly2000" ? "premium" : "professional",
+        subscriptionTier: request.plan === "luxury" ? "premium" : "professional",
         subscriptionMonthlyFeePaise: request.monthlyFeePaise,
         commissionRateBasisPoints: request.maximumCommissionBasisPoints,
         subscriptionStatus: "active",
@@ -103,7 +122,7 @@ export async function reviewSellerSubscriptionRequest(params: {
       type: params.decision === "approved" ? "subscriptionApproved" : "subscriptionRejected",
       title: params.decision === "approved" ? "Seller plan activated" : "Seller plan payment needs attention",
       body: params.decision === "approved"
-        ? `${SELLER_PLANS[request.plan].label} is now active for your Studio.`
+        ? `${request.plan} plan is now active for your Studio.`
         : params.note?.trim() || "Your subscription payment could not be verified.",
       actionUrl: "/studio-admin/subscription",
       read: false,

@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PrivateDocumentLinks } from "@/components/admin/PrivateDocumentLinks";
 import { useRouteGuard } from "@/hooks/useRouteGuard";
 import {
   loadAdminSnapshot,
+  markOrderDeliveredAndSettle,
   toEditableRecord,
   updateAdminDocument,
 } from "@/services/adminOperatingService";
@@ -28,15 +30,18 @@ const tabs: readonly { readonly id: AdminWorkspaceTab; readonly label: string; r
   { id: "search", label: "Global search", description: "Users, sellers, orders and tickets" },
   { id: "users", label: "Users", description: "Roles, blocks and accounts" },
   { id: "sellers", label: "Sellers", description: "Studios and approvals" },
+  { id: "verification", label: "Seller verification", description: "KYC and pickup review" },
   { id: "products", label: "Products", description: "Moderation and visibility" },
   { id: "orders", label: "Orders", description: "Tracking and payment status" },
   { id: "support", label: "Support", description: "Tickets and manual payments" },
   { id: "content", label: "CMS", description: "Words, sections and media" },
   { id: "appearance", label: "Appearance", description: "Global colors and styling" },
   { id: "payments", label: "Payments", description: "Razorpay, UPI and bank mode" },
-  { id: "subscriptions", label: "Seller plans", description: "₹500 and ₹2,000 plan approvals" },
+  { id: "business", label: "Business controls", description: "Plans, fees, KYC, shipping and settlements" },
+  { id: "subscriptions", label: "Seller plans", description: "Starter, Growth, Luxury and custom approvals" },
   { id: "payouts", label: "Seller payouts", description: "Production advances and profit settlements" },
-  { id: "audit", label: "Audit log", description: "Every admin decision" },
+  { id: "settlements", label: "Settlement ledger", description: "Release cost and profit payout stages" },
+  { id: "audit", label: "Changes & restore", description: "Background history of important changes" },
 ] as const;
 
 const adminRoles = ["admin", "support", "contentManager", "financeManager", "marketingManager", "seller", "customer"] as const;
@@ -57,10 +62,12 @@ function bool(record: AdminRecord, key: string): boolean {
 function collectionForTab(tab: AdminWorkspaceTab): keyof AdminSnapshot | null {
   if (tab === "users") return "users";
   if (tab === "sellers") return "studios";
+  if (tab === "verification") return "sellerVerifications";
   if (tab === "products") return "products";
   if (tab === "orders") return "orders";
   if (tab === "subscriptions") return "sellerSubscriptionRequests";
   if (tab === "payouts") return "sellerWithdrawals";
+  if (tab === "settlements") return "payouts";
   if (tab === "audit") return "auditLogs";
   return null;
 }
@@ -77,6 +84,7 @@ function recordTitle(collectionName: string, record: AdminRecord): string {
   if (collectionName === "sellerSubscriptionRequests") return `${text(record, "plan")} · ${record.id.slice(0, 8)}`;
   if (collectionName === "payouts") return `${text(record, "type")} · ₹${Number(record.data.sellerAmountPaise ?? 0) / 100}`;
   if (collectionName === "sellerWithdrawals") return `${text(record, "method")} withdrawal · ₹${Number(record.data.amountPaise ?? 0) / 100}`;
+  if (collectionName === "sellerVerifications") return `${text(record, "legalName")} · ${record.id}`;
   return text(record, "summary", "action", "name", "title");
 }
 
@@ -92,6 +100,10 @@ function recordSubtitle(collectionName: string, record: AdminRecord): string {
   if (collectionName === "sellerSubscriptionRequests") return `${text(record, "status")} · UTR ${text(record, "paymentReference")} · Studio ${text(record, "studioId")}`;
   if (collectionName === "payouts") return `${text(record, "status")} · Order ${text(record, "orderId")} · Studio ${text(record, "studioId")}`;
   if (collectionName === "sellerWithdrawals") return `${text(record, "status")} · Studio ${text(record, "studioId")} · ${text(record, "paymentReference")}`;
+  if (collectionName === "sellerVerifications") {
+    const address = record.data.pickupAddress as Record<string, unknown> | undefined;
+    return `${text(record, "status")} · ${String(address?.city ?? "")} ${String(address?.postalCode ?? "")} · PAN ••••${text(record, "panLastFour")}`;
+  }
   return `${record.id} · ${Object.keys(record.data).slice(0, 5).join(" · ")}`;
 }
 
@@ -299,7 +311,11 @@ export function AdminOperatingSystem(): React.JSX.Element {
       {collectionName === "users" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><select value={String(record.data.role ?? "customer")} onChange={(event) => void patch("users", record, { role: event.target.value }, "user.role.change", `Changed ${recordTitle("users", record)} role to ${event.target.value}`)} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{adminRoles.map((role) => <option key={role} value={role}>{role}</option>)}</select><Button variant={record.data.status === "suspended" ? "primary" : "danger"} loading={busyKey === `${keyPrefix}:user.status.change`} onClick={() => void patch("users", record, { status: record.data.status === "suspended" ? "active" : "suspended" }, "user.status.change", `${record.data.status === "suspended" ? "Activated" : "Suspended"} ${recordTitle("users", record)}`)}>{record.data.status === "suspended" ? "Activate account" : "Suspend account"}</Button></div> : null}
       {collectionName === "studios" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button variant={record.data.active === true ? "danger" : "primary"} onClick={() => void patch("studios", record, { active: record.data.active !== true, status: record.data.active === true ? "suspended" : "active" }, "studio.status.change", `${record.data.active === true ? "Suspended" : "Activated"} Studio ${recordTitle("studios", record)}`)}>{record.data.active === true ? "Suspend Studio" : "Activate Studio"}</Button><Button variant="outline" onClick={() => void patch("studios", record, { featured: record.data.featured !== true }, "studio.feature.change", `${record.data.featured === true ? "Removed" : "Added"} featured Studio placement`)}>{record.data.featured === true ? "Remove featured" : "Feature Studio"}</Button></div> : null}
       {collectionName === "products" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button variant={record.data.status === "published" ? "danger" : "primary"} onClick={() => void patch("products", record, { status: record.data.status === "published" ? "hidden" : "published" }, "product.status.change", `${record.data.status === "published" ? "Hidden" : "Published"} ${recordTitle("products", record)}`)}>{record.data.status === "published" ? "Hide product" : "Publish product"}</Button><Button variant="outline" onClick={() => void patch("products", record, { featured: record.data.featured !== true }, "product.feature.change", `${record.data.featured === true ? "Removed" : "Added"} featured product placement`)}>{record.data.featured === true ? "Remove featured" : "Feature product"}</Button></div> : null}
-      {collectionName === "orders" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><select value={String(record.data.orderStatus ?? record.data.status ?? "placed")} onChange={(event) => void patch("orders", record, { orderStatus: event.target.value, status: event.target.value }, "order.status.change", `Changed order ${record.id} to ${event.target.value}`)} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{["placed","accepted","inProduction","qualityCheck","packaged","readyToShip","shipped","inTransit","outForDelivery","delivered","completed","cancelled","returned"].map((status) => <option key={status} value={status}>{status}</option>)}</select><select value={String(record.data.paymentStatus ?? "pending")} onChange={(event) => void patch("orders", record, { paymentStatus: event.target.value }, "order.payment.change", `Changed order ${record.id} payment to ${event.target.value}`)} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{["pending","paid","failed","refunded","partiallyRefunded"].map((status) => <option key={status} value={status}>{status}</option>)}</select></div> : null}
+      {collectionName === "sellerVerifications" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button disabled={record.data.status !== "submitted"} onClick={async () => { const address = record.data.pickupAddress as Record<string, unknown> | undefined; await patch("sellerVerifications", record, { status: "verified", reviewedAt: new Date().toISOString() }, "seller.verification.approve", `Verified KYC and pickup for ${recordTitle("sellerVerifications", record)}`); const studio = snapshot.studios.find((item) => item.id === record.id); if (studio && address) await patch("studios", studio, { pickupAddress: address, kycStatus: "verified" }, "studio.pickup.approve", `Activated verified pickup for ${recordTitle("studios", studio)}`); }}>Verify KYC & pickup</Button><Button variant="danger" disabled={record.data.status !== "submitted"} onClick={() => { const note = window.prompt("Tell the seller what must be corrected")?.trim(); if (note) void patch("sellerVerifications", record, { status: "rejected", adminNote: note, reviewedAt: new Date().toISOString() }, "seller.verification.reject", `Requested KYC correction from ${recordTitle("sellerVerifications", record)}`); }}>Request correction</Button></div> : null}
+      {collectionName === "sellerVerifications" && Array.isArray(record.data.documentPaths) ? <PrivateDocumentLinks paths={record.data.documentPaths as string[]} ownerUid={String(record.data.sellerUid ?? "")} /> : null}
+      {collectionName === "payouts" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button disabled={record.data.status === "available" || record.data.status === "paid"} onClick={() => void patch("payouts", record, { status: "available", releasedBy: actorUid }, "payout.release", `Released settlement ${record.id}`)}>Release to seller wallet</Button><Button variant="outline" disabled={record.data.status === "paid"} onClick={() => void patch("payouts", record, { status: "paid", paidBy: actorUid }, "payout.markPaid", `Marked settlement ${record.id} paid`)}>Mark manually paid</Button></div> : null}
+      {collectionName === "orders" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><select value={String(record.data.orderStatus ?? record.data.status ?? "placed")} onChange={async (event) => { if (event.target.value === "delivered") { setBusyKey(`order:${record.id}:delivered`); try { await markOrderDeliveredAndSettle({ orderId: record.id, actorUid }); setMessage("Delivery verified. Profit settlement is held until the dispute window ends."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Settlement could not be created."); } finally { setBusyKey(null); } } else await patch("orders", record, { orderStatus: event.target.value, status: event.target.value }, "order.status.change", `Changed order ${record.id} to ${event.target.value}`); }} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{["placed","accepted","inProduction","qualityCheck","packaged","readyToShip","shipped","inTransit","outForDelivery","delivered","completed","cancelled","returned"].map((status) => <option key={status} value={status}>{status}</option>)}</select><select value={String(record.data.paymentStatus ?? "pending")} onChange={(event) => void patch("orders", record, { paymentStatus: event.target.value }, "order.payment.change", `Changed order ${record.id} payment to ${event.target.value}`)} className="rounded-2xl border border-black/10 bg-white px-3 py-3 text-sm">{["pending","paid","failed","refunded","partiallyRefunded"].map((status) => <option key={status} value={status}>{status}</option>)}</select></div> : null}
+      {collectionName === "orders" ? <Link href={`/admin/orders/${record.id}`} className="mt-3 inline-flex min-h-12 items-center justify-center rounded-2xl border border-black/10 bg-white px-4 text-sm font-semibold">Open live tracking</Link> : null}
       {collectionName === "sellerSubscriptionRequests" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button disabled={record.data.status !== "pending"} onClick={async () => { setBusyKey(`subscription:${record.id}`); setMessage(null); try { await reviewSellerSubscriptionRequest({ requestId: record.id, adminUid: actorUid, decision: "approved" }); setMessage(`Approved seller plan ${record.id}`); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Plan could not be approved."); } finally { setBusyKey(null); } }}>Approve plan</Button><Button variant="danger" disabled={record.data.status !== "pending"} onClick={async () => { setBusyKey(`subscription:${record.id}`); setMessage(null); try { await reviewSellerSubscriptionRequest({ requestId: record.id, adminUid: actorUid, decision: "rejected", note: "Payment reference could not be verified." }); setMessage(`Rejected seller plan ${record.id}`); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Plan could not be rejected."); } finally { setBusyKey(null); } }}>Reject</Button></div> : null}
       {collectionName === "payouts" ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><Button disabled={record.data.status === "paid"} onClick={() => void patch("payouts", record, { status: "paid", paidAt: new Date().toISOString(), paidBy: actorUid }, "payout.mark.paid", `Marked seller payout ${record.id} paid`)}>Mark paid</Button><Button variant="outline" disabled={record.data.status !== "pending"} onClick={() => void patch("payouts", record, { status: "available" }, "payout.make.available", `Released seller payout ${record.id}`)}>Release</Button></div> : null}
       {collectionName === "sellerWithdrawals" ? <div className="mt-5 grid gap-3 sm:grid-cols-3"><Button variant="outline" disabled={record.data.status !== "pending"} onClick={async () => { setBusyKey(`withdrawal:${record.id}`); try { await reviewSellerWithdrawal({ withdrawalId: record.id, decision: "processing" }); setMessage("Withdrawal marked processing."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not update withdrawal."); } finally { setBusyKey(null); } }}>Processing</Button><Button disabled={["paid","rejected"].includes(String(record.data.status))} onClick={async () => { const reference = window.prompt("Enter payment UTR/reference"); if (!reference) return; setBusyKey(`withdrawal:${record.id}`); try { await reviewSellerWithdrawal({ withdrawalId: record.id, decision: "paid", paymentReference: reference }); setMessage("Withdrawal marked paid and seller notified."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not complete withdrawal."); } finally { setBusyKey(null); } }}>Paid + UTR</Button><Button variant="danger" disabled={["paid","rejected"].includes(String(record.data.status))} onClick={async () => { const reason = window.prompt("Enter rejection reason"); if (!reason) return; setBusyKey(`withdrawal:${record.id}`); try { await reviewSellerWithdrawal({ withdrawalId: record.id, decision: "rejected", adminNote: reason }); setMessage("Withdrawal rejected and balance released."); await reload(); } catch (caught) { setMessage(caught instanceof Error ? caught.message : "Could not reject withdrawal."); } finally { setBusyKey(null); } }}>Reject</Button></div> : null}
@@ -319,7 +335,7 @@ export function AdminOperatingSystem(): React.JSX.Element {
   else if (tab === "search") workspace = renderSearch();
   else if (selectedCollection) workspace = renderRecords(selectedCollection, tabs.find((item) => item.id === tab)?.label ?? tab, tabs.find((item) => item.id === tab)?.description ?? "");
   else if (tab === "support") workspace = <div className="grid gap-8">{renderSupport()}{renderCustomOrderPayments()}</div>;
-  else if (["content", "appearance", "payments"].includes(tab)) workspace = <AdminCmsWorkspace actorUid={actorUid} tab={tab} />;
+  else if (["content", "appearance", "payments", "business"].includes(tab)) workspace = <AdminCmsWorkspace actorUid={actorUid} tab={tab} />;
   else workspace = renderOverview();
 
   return <AccountShell mode="admin" eyebrow="SIDRA ADMIN OS" title="Platform operating system"><div className="grid gap-6"><Card elevated className="overflow-hidden p-3"><div className="flex gap-2 overflow-x-auto pb-1">{tabs.map((item) => <button type="button" key={item.id} onClick={() => { setTab(item.id); window.location.hash = item.id; }} className={`min-w-max rounded-full px-4 py-3 text-xs font-semibold transition ${tab === item.id ? "bg-[var(--color-deep-plum)] text-white" : "border border-black/10 bg-white/70 text-[var(--color-deep-plum)]"}`}>{item.label}</button>)}</div></Card>{message ? <div className="flex items-center justify-between gap-4 rounded-2xl border border-black/10 bg-white/80 p-4 text-sm"><span>{message}</span><button type="button" onClick={() => setMessage(null)}>✕</button></div> : null}{workspace}</div></AccountShell>;

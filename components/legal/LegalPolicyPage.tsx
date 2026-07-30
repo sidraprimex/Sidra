@@ -7,7 +7,7 @@ import {
 } from "@/services/runtimeCmsService";
 
 interface LegalPolicyPageProps {
-  readonly policyId: "privacy" | "noRefund" | "shipping" | "terms";
+  readonly policyId: "privacy" | "noRefund" | "shipping" | "terms" | "cancellation" | "damageClaims" | "sellerAgreement" | "payoutRecovery";
   readonly eyebrow: string;
   readonly title: string;
   readonly children: ReactNode;

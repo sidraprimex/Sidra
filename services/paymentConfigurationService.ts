@@ -56,6 +56,7 @@ export async function createManualPaymentRequest(input: {
   cart: CustomerCart;
   checkout: CheckoutDraft;
   paymentReference: string;
+  acceptedPolicies: Readonly<Record<string, string>>;
 }): Promise<string> {
   const { db } = requireFirebaseServices();
   const created = await addDoc(collection(db, "manualPaymentRequests"), {
@@ -70,6 +71,7 @@ export async function createManualPaymentRequest(input: {
     couponStudioId: input.checkout.couponStudioId,
     totalPaise: input.checkout.totalPaise,
     paymentReference: input.paymentReference.trim(),
+    acceptedPolicies: input.acceptedPolicies,
     status: "pendingVerification",
     adminNote: null,
     verifiedBy: null,

@@ -171,7 +171,100 @@ service cloud.firestore {
         || supportAdmin()
         || financeAdmin()
       );
-      allow create, update, delete: if false;
+      allow update: if seller()
+        && ownStudio(resource.data.studioId)
+        && request.resource.data.orderId == resource.data.orderId
+        && request.resource.data.customerId == resource.data.customerId
+        && request.resource.data.studioId == resource.data.studioId
+        && request.resource.data.paymentStatus == resource.data.paymentStatus
+        && resource.data.paymentStatus == 'paid'
+        && request.resource.data.timeline is list
+        && request.resource.data.timeline.size() == resource.data.timeline.size() + 1
+        && (
+          (
+            (
+              (resource.data.orderStatus == 'placed' && request.resource.data.orderStatus == 'accepted')
+              || (resource.data.orderStatus == 'accepted' && request.resource.data.orderStatus == 'inProduction')
+              || (resource.data.orderStatus == 'inProduction' && request.resource.data.orderStatus == 'qualityCheck')
+              || (resource.data.orderStatus == 'qualityCheck' && request.resource.data.orderStatus == 'packaged')
+            )
+            && changedOnly(['orderStatus', 'timeline', 'updatedAt'])
+          )
+          || (
+            resource.data.orderStatus == 'packaged'
+            && request.resource.data.orderStatus == 'readyToShip'
+            && request.resource.data.shippingPackage is map
+            && request.resource.data.shippingPackage.provider == 'delhivery'
+            && validText(request.resource.data.shippingPackage.trackingNumber, 3, 80)
+            && request.resource.data.shippingPackage.weightGrams > 0
+            && request.resource.data.shippingPackage.lengthCm > 0
+            && request.resource.data.shippingPackage.widthCm > 0
+            && request.resource.data.shippingPackage.heightCm > 0
+            && changedOnly([
+              'orderStatus', 'shippingPackage', 'timeline', 'updatedAt'
+            ])
+          )
+        );
+      allow create, delete: if false;
+    }
+
+    match /sellerVerifications/{studioId} {
+      allow read: if founder()
+        || (signedIn() && resource.data.sellerUid == uid() && resource.data.studioId == studioId);
+      allow create: if verified()
+        && seller()
+        && sameStudio(studioId)
+        && request.resource.data.studioId == studioId
+        && request.resource.data.sellerUid == uid()
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.documentPaths is list
+        && request.resource.data.pickupAddress is map;
+      allow update: if founder() || (
+        verified()
+        && seller()
+        && sameStudio(studioId)
+        && resource.data.sellerUid == uid()
+        && resource.data.status != 'verified'
+        && request.resource.data.studioId == studioId
+        && request.resource.data.sellerUid == uid()
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.documentPaths is list
+        && request.resource.data.pickupAddress is map
+      );
+      allow delete: if false;
+    }
+
+    match /shippingLedgers/{orderId} {
+      allow read: if signedIn() && (
+        resource.data.studioId == studioId()
+        || supportAdmin()
+        || financeAdmin()
+      );
+      allow create: if seller()
+        && request.resource.data.orderId == orderId
+        && request.resource.data.studioId == studioId()
+        && request.resource.data.provider == 'delhivery'
+        && request.resource.data.sellerOutOfPocketPaise == 0
+        && exists(/databases/$(database)/documents/orders/$(orderId))
+        && get(/databases/$(database)/documents/orders/$(orderId)).data.studioId == studioId();
+      allow update, delete: if financeAdmin();
+    }
+
+    match /payouts/{payoutId} {
+      allow create: if seller()
+        && payoutId == 'making-' + request.resource.data.orderId
+        && request.resource.data.studioId == studioId()
+        && request.resource.data.sellerUid == uid()
+        && request.resource.data.type == 'makingAdvance'
+        && request.resource.data.status == 'available'
+        && request.resource.data.commissionPaise == 0
+        && request.resource.data.grossPaise == request.resource.data.sellerAmountPaise
+        && getAfter(
+          /databases/$(database)/documents/orders/$(request.resource.data.orderId)
+        ).data.orderStatus == 'qualityCheck'
+        && getAfter(
+          /databases/$(database)/documents/orders/$(request.resource.data.orderId)
+        ).data.makingAdvancePaise == request.resource.data.sellerAmountPaise;
     }
 
     match /customOrders/{requestId} {
@@ -633,6 +726,10 @@ service cloud.firestore {
         && request.resource.data.telegramChatId == null
         && request.resource.data.telegramHeaderMessageId == null
         && request.resource.data.accessFeePaise == 0
+        && request.resource.data.installmentAmountsPaise is list
+        && request.resource.data.installmentAmountsPaise.size() == 0
+        && request.resource.data.paymentAmountPaise == 0
+        && request.resource.data.paymentInstallmentNumber == null
         && request.resource.data.paymentMethod == null
         && request.resource.data.paymentReference == null
         && request.resource.data.reviewedAt == null
@@ -667,6 +764,8 @@ service cloud.firestore {
           'status', 'reviewNote', 'reviewedBy', 'studioId', 'slug',
           'failureReason', 'storageProvider', 'telegramChatId',
           'telegramHeaderMessageId', 'accessFeePaise',
+          'installmentAmountsPaise', 'paymentAmountPaise',
+          'paymentInstallmentNumber',
           'paymentMethod', 'paymentReference', 'createdAt', 'updatedAt',
           'reviewedAt', 'paymentSubmittedAt', 'paymentVerifiedAt',
           'provisionedAt'
@@ -761,11 +860,24 @@ service cloud.firestore {
               180
             )
             && request.resource.data.paymentSubmittedAt == request.time
+            && request.resource.data.paymentAmountPaise is int
+            && request.resource.data.paymentAmountPaise > 0
+            && request.resource.data.paymentAmountPaise <= resource.data.accessFeePaise
+            && (
+              request.resource.data.paymentAmountPaise == resource.data.accessFeePaise
+              || (
+                resource.data.installmentAmountsPaise.size() > 0
+                && request.resource.data.paymentAmountPaise == resource.data.installmentAmountsPaise[0]
+                && request.resource.data.paymentInstallmentNumber == 1
+              )
+            )
             && request.resource.data.updatedAt == request.time
             && changedOnly([
               'status',
               'paymentMethod',
               'paymentReference',
+              'paymentAmountPaise',
+              'paymentInstallmentNumber',
               'paymentSubmittedAt',
               'updatedAt'
             ])
@@ -776,6 +888,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /sellerInstallmentSchedules/{studioId} {
+      allow read: if founder() || sameStudio(studioId);
+      allow create, update: if founder();
+      allow delete: if false;
+    }
+
     match /sellerSubscriptionRequests/{requestId} {
       allow read: if founder()
         || (signedIn() && resource.data.sellerUid == uid());
@@ -783,10 +901,13 @@ service cloud.firestore {
         && seller()
         && request.resource.data.sellerUid == uid()
         && sameStudio(request.resource.data.studioId)
-        && request.resource.data.plan in ['monthly500', 'monthly2000']
+        && request.resource.data.plan in ['starter', 'growth', 'luxury', 'custom']
         && request.resource.data.status == 'pending'
-        && request.resource.data.monthlyFeePaise in [50000, 200000]
-        && request.resource.data.maximumCommissionBasisPoints in [1000, 200]
+        && request.resource.data.monthlyFeePaise is int
+        && request.resource.data.monthlyFeePaise >= 0
+        && request.resource.data.maximumCommissionBasisPoints is int
+        && request.resource.data.maximumCommissionBasisPoints >= 0
+        && request.resource.data.maximumCommissionBasisPoints <= 1200
         && validText(request.resource.data.paymentReference, 4, 180);
       allow update: if founder();
       allow delete: if false;
@@ -813,6 +934,11 @@ service cloud.firestore {
         && request.resource.data.discountPaise <= request.resource.data.subtotalPaise
         && request.resource.data.status == 'pendingVerification'
         && validText(request.resource.data.paymentReference, 4, 180)
+        && request.resource.data.acceptedPolicies is map
+        && validText(request.resource.data.acceptedPolicies.terms, 4, 40)
+        && validText(request.resource.data.acceptedPolicies.shipping, 4, 40)
+        && validText(request.resource.data.acceptedPolicies.cancellation, 4, 40)
+        && validText(request.resource.data.acceptedPolicies.damageClaims, 4, 40)
         && request.resource.data.totalPaise is int
         && request.resource.data.totalPaise > 0
         && request.resource.data.totalPaise

@@ -5,14 +5,17 @@ export type AdminWorkspaceTab =
   | "search"
   | "users"
   | "sellers"
+  | "verification"
   | "products"
   | "orders"
   | "support"
   | "content"
   | "appearance"
   | "payments"
+  | "business"
   | "subscriptions"
   | "payouts"
+  | "settlements"
   | "database"
   | "audit";
 
@@ -33,6 +36,7 @@ export interface AdminSnapshot {
   readonly sellerSubscriptionRequests: readonly AdminRecord[];
   readonly payouts: readonly AdminRecord[];
   readonly sellerWithdrawals: readonly AdminRecord[];
+  readonly sellerVerifications: readonly AdminRecord[];
   readonly auditLogs: readonly AdminRecord[];
 }
 

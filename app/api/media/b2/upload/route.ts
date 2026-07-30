@@ -19,12 +19,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     const studioId = String(form.get("studioId") ?? "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
     const productId = String(form.get("productId") ?? "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
     if (ownerUid !== identity.uid) return NextResponse.json({ error: "Invalid media owner." }, { status: 403 });
-    if (!(file instanceof File) || !file.type.startsWith("image/")) return NextResponse.json({ error: "Choose a valid image." }, { status: 400 });
+    const sellerKycFile = context === "seller-kyc"
+      && (file instanceof File)
+      && (file.type.startsWith("image/") || file.type === "application/pdf");
+    if (!(file instanceof File) || (!file.type.startsWith("image/") && !sellerKycFile)) return NextResponse.json({ error: "Choose a valid image or PDF." }, { status: 400 });
     if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: `${file.name} is larger than 4 MB.` }, { status: 413 });
     let path: string;
     if (context === "seller-application" && applicationId) path = `seller-applications/${identity.uid}/${applicationId}/portfolio/${safeB2FileName(file.name)}`;
     else if (context === "product" && studioId && productId) path = `studios/${studioId}/products/${productId}/${safeB2FileName(file.name)}`;
     else if (context === "profile") path = `users/${identity.uid}/profile/${safeB2FileName(file.name)}`;
+    else if (context === "seller-kyc" && studioId) path = `studios/${studioId}/kyc/${safeB2FileName(file.name)}`;
     else return NextResponse.json({ error: "Invalid media destination." }, { status: 400 });
     const uploaded = await b2Request("PUT", path, Buffer.from(await file.arrayBuffer()), file.type || "image/jpeg");
     if (!uploaded.ok) throw new Error(`B2 upload failed (${uploaded.status}).`);

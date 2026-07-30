@@ -133,6 +133,7 @@ export function ApplicationStatusPanel({
   const [method, setMethod] =
     useState<SellerAccessPaymentMethod>("manual");
   const [reference, setReference] = useState("");
+  const [paymentChoice, setPaymentChoice] = useState<"full" | "installment">("full");
   const [submitting, setSubmitting] = useState(false);
   const [retryFiles, setRetryFiles] = useState<File[]>([]);
   const [retrying, setRetrying] = useState(false);
@@ -225,6 +226,8 @@ export function ApplicationStatusPanel({
     application.accessFeePaise ||
     settings?.sellerAccessFeePaise ||
     0;
+  const firstInstallment = application.installmentAmountsPaise[0] ?? fee;
+  const paymentAmount = paymentChoice === "installment" ? firstInstallment : fee;
 
   return (
     <div className="grid gap-6">
@@ -399,6 +402,7 @@ export function ApplicationStatusPanel({
           <h2 className="mt-3 font-display text-h1">
             {fee > 0 ? formatInr(fee) : "Fee pending"}
           </h2>
+          {application.installmentAmountsPaise.length > 0 ? <div className="mt-5 grid gap-3 sm:grid-cols-2"><label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white p-4 text-sm"><input type="radio" name="access-payment" checked={paymentChoice === "full"} onChange={() => setPaymentChoice("full")} /><span><strong>Pay full fee</strong><br />{formatInr(fee)}</span></label><label className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white p-4 text-sm"><input type="radio" name="access-payment" checked={paymentChoice === "installment"} onChange={() => setPaymentChoice("installment")} /><span><strong>Start installments</strong><br />Pay {formatInr(firstInstallment)} now. Full Studio access unlocks after admin verification; overdue installments can gradually restrict new-business features after reminders and grace.</span></label></div> : null}
 
           {fee <= 0 ? (
             <p className="mt-4 text-caption leading-7 text-gray-700">
@@ -445,7 +449,7 @@ export function ApplicationStatusPanel({
               ) : null}
               <p className="mt-4 text-sm text-gray-700">Payment support: <strong>{settings?.supportContact || "9019254743"}</strong></p>
               </div>
-              <UpiPaymentQr upiId={settings?.upiId || "tradewithsyed@ybl"} payeeName={settings?.accountHolderName || "Sidra"} amountPaise={fee} reference={`Sidra seller ${application.id}`} />
+              <UpiPaymentQr upiId={settings?.upiId || "tradewithsyed@ybl"} payeeName={settings?.accountHolderName || "Sidra"} amountPaise={paymentAmount} reference={`Sidra seller ${application.id}`} />
             </div>
           ) : null}
 
@@ -510,6 +514,8 @@ export function ApplicationStatusPanel({
                     applicationId: application.id,
                     method,
                     reference,
+                    amountPaise: paymentAmount,
+                    installmentNumber: paymentChoice === "installment" ? 1 : null,
                   });
                 } catch (caught) {
                   setError(

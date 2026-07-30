@@ -1,4 +1,4 @@
-import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { arrayUnion, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, where, writeBatch } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type {
@@ -33,11 +33,46 @@ export function subscribeOrder(orderId: string, listener: (order: FulfilmentOrde
 }
 
 export async function updateOrderStatus(input: OrderStatusUpdateInput): Promise<void> {
-  const callable = httpsCallable<OrderStatusUpdateInput, { accepted: true }>(
-    requireFirebaseServices().functions,
-    "updateOrderStatus",
-  );
-  await callable(input);
+  const { db, auth } = requireFirebaseServices();
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in again to update this order.");
+  const orderRef = doc(db, "orders", input.orderId);
+  const snapshot = await getDoc(orderRef);
+  if (!snapshot.exists()) throw new Error("Order not found.");
+  const order = snapshot.data();
+  const batch = writeBatch(db);
+  batch.update(orderRef, {
+    orderStatus: input.nextStatus,
+    timeline: arrayUnion({
+      id: crypto.randomUUID(),
+      status: input.nextStatus,
+      label: input.nextStatus,
+      actorId: user.uid,
+      actorRole: "seller",
+      reason: input.reason?.trim() || null,
+      createdAt: new Date().toISOString(),
+      customerVisible: false,
+    }),
+    updatedAt: serverTimestamp(),
+  });
+  const makingAdvancePaise = Math.max(0, Number(order.makingAdvancePaise ?? 0));
+  if (input.nextStatus === "qualityCheck" && makingAdvancePaise > 0) {
+    const payoutRef = doc(db, "payouts", `making-${input.orderId}`);
+    batch.set(payoutRef, {
+      payoutId: payoutRef.id,
+      orderId: input.orderId,
+      studioId: order.studioId,
+      sellerUid: order.sellerUid ?? user.uid,
+      type: "makingAdvance",
+      grossPaise: makingAdvancePaise,
+      commissionPaise: 0,
+      sellerAmountPaise: makingAdvancePaise,
+      status: "available",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
 }
 
 export async function requestRefund(input: RefundRequestInput): Promise<void> {

@@ -28,6 +28,7 @@ export interface ManualPaymentRequest {
   readonly shippingPaise: number;
   readonly totalPaise: number;
   readonly paymentReference: string;
+  readonly acceptedPolicies: Readonly<Record<string, string>>;
   readonly status: ManualPaymentStatus;
   readonly adminNote: string | null;
   readonly verifiedBy: string | null;
