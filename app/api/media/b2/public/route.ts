@@ -7,7 +7,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request): Promise<Response> {
   try {
     const path = new URL(request.url).searchParams.get("path") ?? "";
-    if (!path.startsWith("studios/") && !path.startsWith("users/")) return NextResponse.json({ error: "Invalid public media path." }, { status: 403 });
+    const publicStudioMedia = path.startsWith("studios/") && !path.includes("/kyc/");
+    const publicProfileMedia = path.startsWith("users/") && path.includes("/profile/");
+    if (!publicStudioMedia && !publicProfileMedia) {
+      return NextResponse.json({ error: "Invalid public media path." }, { status: 403 });
+    }
     const response = await b2Request("GET", path);
     if (!response.ok || !response.body) return NextResponse.json({ error: "Media not found." }, { status: response.status });
     return new Response(response.body, {

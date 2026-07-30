@@ -24,6 +24,7 @@ function normalize(id: string, data: Record<string, unknown>): SellerSubscriptio
 
 export function watchStudioSubscriptionRequests(
   studioId: string,
+  sellerUid: string,
   onValue: (values: readonly SellerSubscriptionRequest[]) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
@@ -32,6 +33,7 @@ export function watchStudioSubscriptionRequests(
     query(
       collection(db, "sellerSubscriptionRequests"),
       where("studioId", "==", studioId),
+      where("sellerUid", "==", sellerUid),
       limit(20),
     ),
     (snapshot) => onValue(snapshot.docs.map((item) => normalize(item.id, item.data()))),

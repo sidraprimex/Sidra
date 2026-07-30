@@ -15,7 +15,7 @@ import {
 } from "@/types/seller-subscription";
 import { defaultSellerCommerceSettings, watchSellerCommerceSettings } from "@/services/businessConfigurationService";
 
-const paidPlans = ["starter", "growth", "luxury", "custom"] as const;
+type PaidPlan = "starter" | "growth" | "luxury" | "custom";
 
 function millis(value: unknown): number {
   if (
@@ -36,7 +36,7 @@ export function SellerSubscriptionManager({
   readonly studioId: string;
   readonly sellerUid: string;
 }): React.JSX.Element {
-  const [selected, setSelected] = useState<(typeof paidPlans)[number]>("starter");
+  const [selected, setSelected] = useState<PaidPlan>("starter");
   const [reference, setReference] = useState("");
   const [requests, setRequests] = useState<readonly SellerSubscriptionRequest[]>([]);
   const [settings, setSettings] = useState(defaultSellerCommerceSettings);
@@ -45,8 +45,8 @@ export function SellerSubscriptionManager({
   const [message, setMessage] = useState("");
 
   useEffect(
-    () => watchStudioSubscriptionRequests(studioId, setRequests, (error) => setMessage(error.message)),
-    [studioId],
+    () => watchStudioSubscriptionRequests(studioId, sellerUid, setRequests, (error) => setMessage(error.message)),
+    [sellerUid, studioId],
   );
   useEffect(() => watchSellerCommerceSettings(setSettings, (error) => setMessage(error.message)), []);
   useEffect(() => watchSellerInstallmentSchedule(studioId, setInstallments, (error) => setMessage(error.message)), [studioId]);
@@ -62,7 +62,7 @@ export function SellerSubscriptionManager({
     <div className="grid gap-4 lg:grid-cols-3">
       {plans.map((item) => {
         const plan = item.id;
-        return <Card key={plan} elevated className={selected === plan ? "border-[var(--color-dusty-rose)]" : ""}><p className="text-xs font-semibold uppercase tracking-[.18em] text-[var(--color-dusty-rose)]">{item.label}</p>{item.originalMonthlyFeePaise > item.monthlyFeePaise ? <p className="mt-3 text-sm text-black/45 line-through">₹{item.originalMonthlyFeePaise / 100}</p> : null}<p className="mt-1 font-display text-5xl text-[var(--color-deep-plum)]">{item.monthlyFeePaise ? `₹${item.monthlyFeePaise / 100}` : "₹0"}</p><p className="mt-3 text-sm text-gray-700">Platform commission: {item.commissionMode === "range" ? "0–" : ""}{item.commissionBasisPoints / 100}% of verified seller profit.</p><ul className="mt-4 grid gap-2 text-xs text-gray-600">{item.benefits.map((benefit) => <li key={benefit}>✓ {benefit}</li>)}</ul>{plan !== "free" ? <Button className="mt-5 w-full" variant={selected === plan ? "primary" : "outline"} onClick={() => setSelected(plan as (typeof paidPlans)[number])}>Choose plan</Button> : <p className="mt-5 text-xs text-gray-600">Default when no paid plan is active.</p>}</Card>;
+        return <Card key={plan} elevated className={selected === plan ? "border-[var(--color-dusty-rose)]" : ""}><p className="text-xs font-semibold uppercase tracking-[.18em] text-[var(--color-dusty-rose)]">{item.label}</p>{item.originalMonthlyFeePaise > item.monthlyFeePaise ? <p className="mt-3 text-sm text-black/45 line-through">₹{item.originalMonthlyFeePaise / 100}</p> : null}<p className="mt-1 font-display text-5xl text-[var(--color-deep-plum)]">{item.monthlyFeePaise ? `₹${item.monthlyFeePaise / 100}` : "₹0"}</p><p className="mt-3 text-sm text-gray-700">Platform commission: {item.commissionMode === "range" ? "0–" : ""}{item.commissionBasisPoints / 100}% of verified seller profit.</p><ul className="mt-4 grid gap-2 text-xs text-gray-600">{item.benefits.map((benefit) => <li key={benefit}>✓ {benefit}</li>)}</ul>{plan !== "free" ? <Button className="mt-5 w-full" variant={selected === plan ? "primary" : "outline"} onClick={() => setSelected(plan as PaidPlan)}>Choose plan</Button> : <p className="mt-5 text-xs text-gray-600">Default when no paid plan is active.</p>}</Card>;
       })}
     </div>
     <Card elevated className="grid gap-6 md:grid-cols-[1fr_auto]">

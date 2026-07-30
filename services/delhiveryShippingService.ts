@@ -1,4 +1,4 @@
-import { arrayUnion, doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { arrayUnion, doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { ShipmentEvent } from "@/types/logistics";
 import type { FulfilmentOrder, ShippingPackage } from "@/types/phase7-orders";
@@ -50,7 +50,8 @@ export async function prepareDelhiveryShipment(params: {
     costAllocation: String(payload.costAllocation ?? "buyerPaid") as import("@/types/logistics").ShippingCostAllocation,
   };
   const { db, auth } = requireFirebaseServices();
-  await updateDoc(doc(db, "orders", params.order.orderId), {
+  const batch = writeBatch(db);
+  batch.update(doc(db, "orders", params.order.orderId), {
     orderStatus: "readyToShip",
     shippingPackage: value,
     timeline: arrayUnion({
@@ -65,7 +66,7 @@ export async function prepareDelhiveryShipment(params: {
     }),
     updatedAt: serverTimestamp(),
   });
-  await setDoc(doc(db, "shippingLedgers", params.order.orderId), {
+  batch.set(doc(db, "shippingLedgers", params.order.orderId), {
     orderId: params.order.orderId,
     studioId: params.order.studioId,
     provider: "delhivery",
@@ -77,6 +78,7 @@ export async function prepareDelhiveryShipment(params: {
     updatedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
   }, { merge: true });
+  await batch.commit();
   return value;
 }
 

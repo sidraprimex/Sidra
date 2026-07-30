@@ -209,8 +209,8 @@ service cloud.firestore {
     }
 
     match /sellerVerifications/{studioId} {
-      allow read: if founder()
-        || (signedIn() && resource.data.sellerUid == uid() && resource.data.studioId == studioId);
+      allow get: if founder() || (seller() && sameStudio(studioId));
+      allow list: if founder();
       allow create: if verified()
         && seller()
         && sameStudio(studioId)

@@ -1,13 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { subscribeOrderConfirmation } from "@/services/orderConfirmationService";
 import type { OrderConfirmation } from "@/types/phase6-commerce";
 import { formatInr } from "@/utils/cartTotals";
 
 export function OrderConfirmationClient({ orderId }: { readonly orderId: string }): React.JSX.Element {
   const [order, setOrder] = useState<OrderConfirmation | null>(null);
-  useEffect(() => subscribeOrderConfirmation(orderId, setOrder), [orderId]);
+  const [error, setError] = useState("");
+  useEffect(
+    () => subscribeOrderConfirmation(
+      orderId,
+      (value) => {
+        setOrder(value);
+        setError("");
+      },
+      (caught) => setError(caught.message),
+    ),
+    [orderId],
+  );
+
+  if (error) {
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
+  }
 
   if (!order) {
     return <section className="rounded-[var(--radius-lg)] border border-border bg-card p-10"><h1 className="font-heading text-4xl">Verifying your payment</h1><p className="mt-4 leading-7 text-muted">The gateway webhook is being verified. This page updates automatically once the server creates the order.</p></section>;

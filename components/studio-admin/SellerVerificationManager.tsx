@@ -22,25 +22,33 @@ export function SellerVerificationManager({ studioId, sellerUid }: { readonly st
   const [ifsc, setIfsc] = useState("");
   const [documents, setDocuments] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    void Promise.all([getSellerKycSettings(), getSellerVerification(studioId)]).then(([nextSettings, verification]) => {
-      setSettings(nextSettings); setExisting(verification);
-      if (verification) {
-        setLegalName(verification.legalName);
-        setPanLastFour(verification.panLastFour);
-        setIdentityProofType(verification.identityProofType ?? "aadhaar");
-        setIdentityProofLastFour(verification.identityProofLastFour);
-        setPickupAddress(verification.pickupAddress);
-        setBankAccountLastFour(verification.bankAccountLastFour);
-        setIfsc(verification.ifsc);
-        setDocuments([...verification.documentPaths]);
-      }
-    }).catch((caught) => setMessage(caught instanceof Error ? caught.message : "Verification details could not load."));
+    setLoading(true);
+    setLoadError("");
+    void Promise.all([getSellerKycSettings(), getSellerVerification(studioId)])
+      .then(([nextSettings, verification]) => {
+        setSettings(nextSettings); setExisting(verification);
+        if (verification) {
+          setLegalName(verification.legalName);
+          setPanLastFour(verification.panLastFour);
+          setIdentityProofType(verification.identityProofType ?? "aadhaar");
+          setIdentityProofLastFour(verification.identityProofLastFour);
+          setPickupAddress(verification.pickupAddress);
+          setBankAccountLastFour(verification.bankAccountLastFour);
+          setIfsc(verification.ifsc);
+          setDocuments([...verification.documentPaths]);
+        }
+      })
+      .catch((caught) => setLoadError(caught instanceof Error ? caught.message : "Verification details could not load."))
+      .finally(() => setLoading(false));
   }, [studioId]);
 
-  if (!settings) return <PremiumLoader label="Preparing secure Studio verification" />;
+  if (loading) return <PremiumLoader label="Preparing secure Studio verification" />;
+  if (!settings) return <Card elevated><p className="text-xs font-semibold uppercase tracking-[.2em] text-red-700">Verification could not load</p><p className="mt-3 text-sm leading-7 text-gray-700">{loadError || "Please check your connection and try again."}</p><Button className="mt-5" onClick={() => window.location.reload()}>Retry</Button></Card>;
   const locked = existing?.status === "verified";
   return <div className="grid gap-6">
     <Card elevated><p className="text-xs font-semibold uppercase tracking-[.2em] text-[var(--color-dusty-rose)]">Sidra verification</p><h2 className="mt-3 font-display text-5xl text-[var(--color-deep-plum)]">{locked ? "Verified Studio" : "KYC & pickup address"}</h2><p className="mt-3 text-sm leading-7 text-gray-700">You submit details only to Sidra. Sidra sends Delhivery only the minimum pickup information needed for collection. Full Aadhaar or PAN values are never stored in plain text here.</p>{existing ? <p className="mt-4 rounded-2xl border border-black/10 bg-white p-4 text-sm">Current status: <strong>{existing.status}</strong>{existing.adminNote ? ` · ${existing.adminNote}` : ""}</p> : null}</Card>

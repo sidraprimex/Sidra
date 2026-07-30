@@ -10,8 +10,13 @@ export async function getOrderConfirmation(orderId: string): Promise<OrderConfir
 export function subscribeOrderConfirmation(
   orderId: string,
   listener: (order: OrderConfirmation | null) => void,
+  onError?: (error: Error) => void,
 ): () => void {
-  return onSnapshot(doc(phase4Firestore(), "orders", orderId), (snapshot) => {
-    listener(snapshot.exists() ? ({ orderId: snapshot.id, ...snapshot.data() } as OrderConfirmation) : null);
-  });
+  return onSnapshot(
+    doc(phase4Firestore(), "orders", orderId),
+    (snapshot) => {
+      listener(snapshot.exists() ? ({ orderId: snapshot.id, ...snapshot.data() } as OrderConfirmation) : null);
+    },
+    (caught) => onError?.(caught),
+  );
 }

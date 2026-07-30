@@ -18,7 +18,7 @@ export function AdminSiteChromeEditor({ actorUid }: { readonly actorUid: string 
         if (Array.isArray(value.items)) setNavigation(value.items as NavigationItem[]);
       }
       if (footerDoc) setFooter((current) => ({ ...current, ...(toEditableRecord(footerDoc.data) as Partial<FooterContent>) }));
-    }).catch(() => undefined);
+    }).catch((caught) => setMessage(caught instanceof Error ? caught.message : "Menus and footer could not be loaded."));
   }, []);
   const save = async () => {
     setBusy(true); setMessage("");
