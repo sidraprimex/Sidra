@@ -1,4 +1,5 @@
 import type { StudioProduct } from "@/types/phase4-product";
+import type { StudioStorefrontConfig } from "@/types/studio-storefront";
 
 export type HomepageBlockType =
   | "Hero"
@@ -51,6 +52,7 @@ export interface PublicStudio {
     readonly title?: string;
     readonly description?: string;
   };
+  readonly storefront?: StudioStorefrontConfig;
 }
 
 export interface PublicProduct extends StudioProduct {

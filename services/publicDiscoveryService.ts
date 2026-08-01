@@ -16,6 +16,7 @@ import type {
   PublicStudio,
 } from "@/types/phase5-discovery";
 import defaultHomepage from "@/cms/phase5-homepage.default.json";
+import { defaultStudioStorefront, type StudioStorefrontConfig } from "@/types/studio-storefront";
 
 function stringValue(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -154,7 +155,10 @@ export async function getPublicStudioBySlug(slug: string): Promise<PublicStudio 
     snapshot.docs[0].id,
     snapshot.docs[0].data(),
   );
-  return studio.active && studio.status !== "suspended" ? studio : null;
+  if (!studio.active || studio.status === "suspended") return null;
+  const storefrontSnapshot = await getDoc(doc(phase4Firestore(), "studioStorefronts", studio.id));
+  const storefront = storefrontSnapshot.exists() ? ({ ...defaultStudioStorefront(studio.id), ...storefrontSnapshot.data(), studioId: studio.id } as StudioStorefrontConfig) : defaultStudioStorefront(studio.id);
+  return { ...studio, storefront };
 }
 
 export async function listPublishedProducts(

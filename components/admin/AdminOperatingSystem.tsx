@@ -137,8 +137,13 @@ export function AdminOperatingSystem(): React.JSX.Element {
 
   useEffect(() => { if (auth.user) void reload(); }, [auth.user]);
   useEffect(() => {
-    const fromHash = window.location.hash.replace("#", "") as AdminWorkspaceTab;
-    if (tabs.some((item) => item.id === fromHash)) setTab(fromHash);
+    const syncFromHash = () => {
+      const fromHash = window.location.hash.replace("#", "") as AdminWorkspaceTab;
+      if (tabs.some((item) => item.id === fromHash)) setTab(fromHash);
+    };
+    syncFromHash();
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
   }, []);
 
   const filteredSearch = useMemo(() => {

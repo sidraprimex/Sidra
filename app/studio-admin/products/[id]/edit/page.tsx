@@ -1,4 +1,6 @@
 import { NewProductController } from "@/components/product-management/NewProductController";
-export default function EditProductPage(): React.JSX.Element {
-  return <main className="mx-auto w-full max-w-7xl px-5 py-12 sm:px-8"><NewProductController /></main>;
+import { AccountShell } from "@/components/account/AccountShell";
+export default async function EditProductPage({ params }: { readonly params: Promise<{ readonly id: string }> }): Promise<React.JSX.Element> {
+  const { id } = await params;
+  return <AccountShell mode="seller" eyebrow="Studio catalogue" title="Edit product"><NewProductController existingProductId={id} /></AccountShell>;
 }

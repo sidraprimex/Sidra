@@ -103,6 +103,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /studioStorefronts/{documentId} {
+      allow read: if true;
+      allow create: if founder() || (verified() && seller() && sameStudio(documentId) && request.resource.data.studioId == documentId && request.resource.data.sellerUid == uid() && request.resource.data.layout in ['editorial', 'gallery', 'catalog'] && request.resource.data.heroAlignment in ['left', 'center'] && request.resource.data.accentColor is string && request.resource.data.accentColor.size() <= 16 && request.resource.data.headline is string && request.resource.data.headline.size() <= 140 && request.resource.data.announcement is string && request.resource.data.announcement.size() <= 180 && request.resource.data.collections is list && request.resource.data.collections.size() <= 20);
+      allow update: if founder() || (verified() && seller() && sameStudio(documentId) && request.resource.data.studioId == resource.data.studioId && request.resource.data.sellerUid == resource.data.sellerUid && request.resource.data.layout in ['editorial', 'gallery', 'catalog'] && request.resource.data.heroAlignment in ['left', 'center'] && request.resource.data.collections is list && request.resource.data.collections.size() <= 20 && changedOnly(['announcement', 'headline', 'accentColor', 'layout', 'heroAlignment', 'showStory', 'showCollections', 'showPolicies', 'collections', 'updatedAt']));
+      allow delete: if founder();
+    }
+
     match /products/{productId} {
       allow read: if resource.data.status == 'published' || ownStudio(resource.data.studioId) || anyAdmin();
       allow create: if verified()
@@ -121,11 +128,14 @@ service cloud.firestore {
           || (resource.data.status == 'published' && request.resource.data.status == 'published')
         )
         && changedOnly([
-          'name', 'slug', 'shortDescription', 'description', 'story', 'category',
-          'collectionIds', 'price', 'salePrice', 'sku', 'inventoryCount',
-          'inventoryMode', 'images', 'videos', 'variants', 'materials',
-          'dimensions', 'weight', 'productionTimeDays', 'shippingTimeDays',
-          'status', 'seo', 'updatedAt'
+          'name', 'slug', 'shortDescription', 'description', 'story',
+          'category', 'categoryId', 'categorySlug', 'collectionIds',
+          'price', 'pricePaise', 'salePrice', 'salePricePaise', 'sku',
+          'inventoryCount', 'inventoryMode', 'images', 'videos', 'media',
+          'heroImageUrl', 'generatedVideoUrl', 'variants', 'materials',
+          'dimensions', 'weight', 'weightGrams', 'productionTimeDays',
+          'shippingTimeDays', 'status', 'submittedAt', 'publishedAt',
+          'archivedAt', 'seo', 'updatedAt'
         ])
       );
       allow delete: if false;

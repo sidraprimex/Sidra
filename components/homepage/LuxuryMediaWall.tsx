@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import {
   useEffect,
   useState,
@@ -19,6 +20,9 @@ export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly st
 
   const [showAll, setShowAll] =
     useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const shouldLock =
@@ -197,9 +201,9 @@ export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly st
         </div>
       </section>
 
-      {showAll ? (
+      {mounted && showAll ? createPortal(
         <div
-          className="fixed inset-0 z-[120] overflow-y-auto bg-[color:rgba(28,28,28,0.96)] px-4 py-5 backdrop-blur-xl sm:px-8"
+          className="fixed inset-0 z-[280] overflow-y-auto overscroll-contain bg-[color:rgba(28,28,28,0.96)] px-3 py-3 backdrop-blur-xl sm:px-8 sm:py-5"
           role="dialog"
           aria-modal="true"
           aria-label="Explore all Sidra artwork"
@@ -261,12 +265,12 @@ export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly st
               )}
             </div>
           </div>
-        </div>
+        </div>, document.body
       ) : null}
 
-      {selectedImage ? (
+      {mounted && selectedImage ? createPortal(
         <div
-          className="fixed inset-0 z-[140] flex items-center justify-center bg-[color:rgba(28,28,28,0.97)] p-3 backdrop-blur-xl sm:p-8"
+          className="fixed inset-0 z-[300] flex items-center justify-center overflow-hidden bg-[color:rgba(28,28,28,0.97)] p-2 backdrop-blur-xl sm:p-8"
           role="dialog"
           aria-modal="true"
           aria-label="Artwork viewer"
@@ -276,7 +280,7 @@ export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly st
             onClick={() =>
               setSelectedIndex(null)
             }
-            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/30 text-2xl text-white backdrop-blur transition hover:bg-white/10 sm:right-8 sm:top-8"
+            className="absolute right-3 top-[max(.75rem,env(safe-area-inset-top))] z-20 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl text-white backdrop-blur transition hover:bg-white/10 sm:right-8 sm:top-8"
             aria-label="Close artwork"
           >
             ×
@@ -285,13 +289,13 @@ export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly st
           <button
             type="button"
             onClick={showPrevious}
-            className="absolute left-3 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/40 text-2xl text-white backdrop-blur transition hover:bg-white/10 sm:left-8"
+            className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-20 flex h-11 w-11 -translate-x-14 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl text-white backdrop-blur transition hover:bg-white/10 sm:bottom-auto sm:left-8 sm:h-12 sm:w-12 sm:translate-x-0"
             aria-label="Previous artwork"
           >
             ‹
           </button>
 
-          <div className="relative h-[82svh] w-full max-w-6xl overflow-hidden rounded-[1.5rem] border border-white/12 bg-black/30 shadow-2xl">
+          <div className="relative h-[calc(100dvh-7rem)] w-full max-w-6xl overflow-hidden rounded-[1.1rem] border border-white/12 bg-black/30 shadow-2xl sm:h-[82svh] sm:rounded-[1.5rem]">
             <Image
               src={selectedImage}
               alt="Selected luxury resin artwork"
@@ -317,12 +321,12 @@ export function LuxuryMediaWall({ images = [] }: { readonly images?: readonly st
           <button
             type="button"
             onClick={showNext}
-            className="absolute right-3 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/40 text-2xl text-white backdrop-blur transition hover:bg-white/10 sm:right-8"
+            className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-20 flex h-11 w-11 translate-x-4 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl text-white backdrop-blur transition hover:bg-white/10 sm:bottom-auto sm:left-auto sm:right-8 sm:h-12 sm:w-12 sm:translate-x-0"
             aria-label="Next artwork"
           >
             ›
           </button>
-        </div>
+        </div>, document.body
       ) : null}
     </>
   );

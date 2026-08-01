@@ -11,7 +11,7 @@ interface UploadResult {
 export async function uploadB2Media(input: {
   readonly file: File | Blob;
   readonly fileName: string;
-  readonly context: "profile" | "product";
+  readonly context: "profile" | "product" | "studio-branding";
   readonly studioId?: string;
   readonly productId?: string;
 }): Promise<UploadResult> {

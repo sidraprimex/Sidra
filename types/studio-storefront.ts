@@ -1,0 +1,5 @@
+export type StorefrontLayout = "editorial" | "gallery" | "catalog";
+export type StorefrontHeroAlignment = "left" | "center";
+export interface StudioStoreCollection { readonly id: string; readonly name: string; readonly description: string; readonly enabled: boolean; readonly sortOrder: number; }
+export interface StudioStorefrontConfig { readonly studioId: string; readonly sellerUid: string; readonly announcement: string; readonly headline: string; readonly accentColor: string; readonly layout: StorefrontLayout; readonly heroAlignment: StorefrontHeroAlignment; readonly showStory: boolean; readonly showCollections: boolean; readonly showPolicies: boolean; readonly collections: readonly StudioStoreCollection[]; readonly createdAt?: unknown; readonly updatedAt?: unknown; }
+export function defaultStudioStorefront(studioId: string, sellerUid = ""): StudioStorefrontConfig { return { studioId, sellerUid, announcement: "", headline: "Handcrafted with intention.", accentColor: "#4a193c", layout: "editorial", heroAlignment: "left", showStory: true, showCollections: true, showPolicies: true, collections: [] }; }

@@ -20,7 +20,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const studioId = String(form.get("studioId") ?? "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
     const productId = String(form.get("productId") ?? "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 100);
     if (ownerUid !== identity.uid) return NextResponse.json({ error: "Invalid media owner." }, { status: 403 });
-    if ((context === "product" || context === "seller-kyc") && studioId) {
+    if ((context === "product" || context === "seller-kyc" || context === "studio-branding") && studioId) {
       const profile = await getFirestoreDocumentWithUserToken(firebaseBearerToken(request), `users/${identity.uid}`);
       const configuredAdmin = identity.email?.toLowerCase() === "syedafsharkhadri63@gmail.com";
       if (String(profile?.studioId ?? "") !== studioId && !configuredAdmin) {
@@ -37,10 +37,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     else if (context === "product" && studioId && productId) path = `studios/${studioId}/products/${productId}/${safeB2FileName(file.name)}`;
     else if (context === "profile") path = `users/${identity.uid}/profile/${safeB2FileName(file.name)}`;
     else if (context === "seller-kyc" && studioId) path = `studios/${studioId}/kyc/${safeB2FileName(file.name)}`;
+    else if (context === "studio-branding" && studioId) path = `studios/${studioId}/branding/${safeB2FileName(file.name)}`;
     else return NextResponse.json({ error: "Invalid media destination." }, { status: 400 });
     const uploaded = await b2Request("PUT", path, Buffer.from(await file.arrayBuffer()), file.type || "image/jpeg");
     if (!uploaded.ok) throw new Error(`B2 upload failed (${uploaded.status}).`);
-    const publicUrl = context === "product" || context === "profile"
+    const publicUrl = context === "product" || context === "profile" || context === "studio-branding"
       ? `/api/media/b2/public?path=${encodeURIComponent(path)}`
       : "";
     return NextResponse.json({ path, publicUrl, fileName: file.name, contentType: file.type, size: file.size });

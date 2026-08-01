@@ -41,6 +41,11 @@ export async function getStudioProduct(productId: string): Promise<StudioProduct
   const snapshot = await getDoc(doc(phase4Firestore(), "products", productId));
   return snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as StudioProduct) : null;
 }
+export async function getProductDraftForEdit(productId: string): Promise<{ readonly input: ProductDraftInput; readonly media: readonly ProductMedia[] } | null> {
+  const product = await getStudioProduct(productId); if (!product) return null;
+  const costingSnapshot = await getDoc(doc(phase4Firestore(), "productCostings", productId)); const costing = costingSnapshot.data() ?? {};
+  return { media: product.media ?? [], input: { name: product.name, categoryId: product.categoryId, categorySlug: product.categorySlug, collectionIds: product.collectionIds ?? [], shortDescription: product.shortDescription ?? "", description: product.description ?? "", story: product.story ?? "", pricePaise: product.pricePaise, salePricePaise: product.salePricePaise, costing: { makingCostPaise: Number(costing.makingCostPaise ?? 0), sellerShippingCostPaise: Number(costing.sellerShippingCostPaise ?? 0) }, sku: product.sku ?? "", inventoryMode: product.inventoryMode, inventoryCount: product.inventoryCount, variants: product.variants ?? [], materials: product.materials ?? [], dimensions: product.dimensions, weightGrams: product.weightGrams, productionTimeDays: product.productionTimeDays, shippingTimeDays: product.shippingTimeDays, seo: product.seo } };
+}
 
 export async function createProductDraft(
   studioId: string,
