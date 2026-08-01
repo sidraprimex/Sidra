@@ -12,6 +12,10 @@ import { SELLER_PLANS, type SellerSubscriptionPlan } from "@/types/seller-subscr
 import type { ProductDraftInput, ProductMedia } from "@/types/phase4-product";
 import type { TaxonomyRecord } from "@/types/phase4-taxonomy";
 
+const fallbackCategories: readonly TaxonomyRecord[] = [
+  ["wall-art","Wall Art"],["islamic-art","Islamic Art"],["tables","Resin Tables"],["clocks","Resin Clocks"],["trays","Trays & Serveware"],["home-decor","Home Decor"],["jewellery","Resin Jewellery"],["gifts","Personalised Gifts"],
+].map(([id,name],sortOrder)=>({id,name,slug:id,description:"",imageUrl:null,active:true,sortOrder,createdAt:"",updatedAt:""}));
+
 export function NewProductController({ existingProductId }: { readonly existingProductId?: string }): React.JSX.Element {
   const auth = useRouteGuard({ allowedRoles: ["seller", "founder", "superAdmin"], requireStudioId: true });
   const [categories, setCategories] = useState<readonly TaxonomyRecord[]>([]);
@@ -25,9 +29,6 @@ export function NewProductController({ existingProductId }: { readonly existingP
   const [plan, setPlan] = useState<SellerSubscriptionPlan>("free");
   const [commissionBasisPoints, setCommissionBasisPoints] = useState(1200);
   const [planLabel, setPlanLabel] = useState("Free");
-  const fallbackCategories: readonly TaxonomyRecord[] = [
-    ["wall-art","Wall Art"],["islamic-art","Islamic Art"],["tables","Resin Tables"],["clocks","Resin Clocks"],["trays","Trays & Serveware"],["home-decor","Home Decor"],["jewellery","Resin Jewellery"],["gifts","Personalised Gifts"],
-  ].map(([id,name],sortOrder)=>({id,name,slug:id,description:"",imageUrl:null,active:true,sortOrder,createdAt:"",updatedAt:""}));
   useEffect(() => { if (!auth.claims?.studioId) return; void Promise.all([listTaxonomy("categories"), listTaxonomy("collections"), getStudioStorefront(auth.claims.studioId), getSellerStudio(auth.claims.studioId), getSellerCommerceSettings(), existingProductId ? getProductDraftForEdit(existingProductId) : Promise.resolve(null)]).then(([nextCategories, globalCollections, storefront, studio, commerce, draft]) => { const studioCollections: TaxonomyRecord[] = storefront.collections.map((item) => ({ id:item.id,name:item.name,slug:item.id,description:item.description,imageUrl:null,active:item.enabled,sortOrder:item.sortOrder,createdAt:"",updatedAt:"" })); setCategories(nextCategories.some((item)=>item.active)?nextCategories:fallbackCategories); setCollections([...studioCollections,...globalCollections.filter((item)=>!studioCollections.some((own)=>own.id===item.id))]); const rawStudio=studio as (typeof studio & {subscriptionPlan?:SellerSubscriptionPlan;commissionRateBasisPoints?:number}); const nextPlan=rawStudio?.subscriptionPlan && SELLER_PLANS[rawStudio.subscriptionPlan]?rawStudio.subscriptionPlan:"free"; const definition=commerce.plans.find((item)=>item.id===nextPlan); setPlan(nextPlan); setCommissionBasisPoints(Number(rawStudio?.commissionRateBasisPoints ?? definition?.commissionBasisPoints ?? SELLER_PLANS[nextPlan].maximumCommissionBasisPoints)); setPlanLabel(definition?.label ?? SELLER_PLANS[nextPlan].label); if(existingProductId){if(!draft)throw new Error("Product not found or you do not have access.");setInitialValue({...draft.input,costing:{makingCostPaise:draft.input.costing?.makingCostPaise??0,sellerShippingCostPaise:0}});setMedia(draft.media);}}).catch((caught)=>setError(caught instanceof Error?caught.message:"Product editor could not be loaded.")).finally(()=>setLoading(false)); }, [auth.claims?.studioId, existingProductId]);
   const ensure = async (input: ProductDraftInput) => {
     if (!auth.user || !auth.claims?.studioId) throw new Error("Your verified Studio connection is required.");
