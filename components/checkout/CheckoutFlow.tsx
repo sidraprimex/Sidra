@@ -15,6 +15,8 @@ import type { CustomerCart, ShippingAddress } from "@/types/phase6-commerce";
 import type { CheckoutPaymentSettings } from "@/types/payment-settings";
 import type { AppliedSellerCoupon } from "@/types/phase11-seller-growth";
 import { UpiPaymentQr } from "@/components/payments/UpiPaymentQr";
+import { defaultLogisticsSettings, getLogisticsSettings } from "@/services/businessConfigurationService";
+import type { ShippingCostAllocation } from "@/types/logistics";
 
 declare global {
   interface Window {
@@ -60,12 +62,13 @@ export function CheckoutFlow({
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [policiesAccepted, setPoliciesAccepted] = useState(false);
+  const [shippingAllocation, setShippingAllocation] = useState<ShippingCostAllocation>(defaultLogisticsSettings.shippingCostAllocation);
   const draft = useMemo(
     () => ({
-      ...calculateCheckoutDraft(cart.items, appliedCoupon),
+      ...calculateCheckoutDraft(cart.items, appliedCoupon, shippingAllocation),
       addressId,
     }),
-    [cart.items, appliedCoupon, addressId],
+    [cart.items, appliedCoupon, addressId, shippingAllocation],
   );
 
   useEffect(() => {
@@ -73,12 +76,14 @@ export function CheckoutFlow({
       getCart(userId),
       listAddresses(userId),
       getCheckoutPaymentSettings(),
-    ]).then(([nextCart, nextAddresses, settings]) => {
+      getLogisticsSettings(),
+    ]).then(([nextCart, nextAddresses, settings, logistics]) => {
       setCart(nextCart);
       setAppliedCoupon(null);
       setCouponMessage(null);
       setAddresses(nextAddresses);
       setPaymentSettings(settings);
+      setShippingAllocation(logistics.shippingCostAllocation);
       setAddressId(
         nextAddresses.find((item) => item.isDefault)?.id ??
           nextAddresses[0]?.id ??
@@ -263,8 +268,8 @@ export function CheckoutFlow({
               <span>{formatInr(draft.subtotalPaise)}</span>
             </div>
             <div className="mt-3 flex justify-between">
-              <span>Shipping</span>
-              <span>{formatInr(draft.shippingPaise)}</span>
+              <span>Sidra delivery</span>
+              <span>{shippingAllocation === "includedInPrice" ? "Included in product price" : formatInr(draft.shippingPaise)}</span>
             </div>
             {draft.discountPaise > 0 ? (
               <div className="mt-3 flex justify-between text-emerald-700">

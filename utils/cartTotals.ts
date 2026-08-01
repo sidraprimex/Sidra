@@ -1,4 +1,5 @@
 import type { CartLineItem, CheckoutDraft } from "@/types/phase6-commerce";
+import type { ShippingCostAllocation } from "@/types/logistics";
 
 export function calculateCheckoutDraft(
   items: readonly CartLineItem[],
@@ -8,10 +9,11 @@ export function calculateCheckoutDraft(
     readonly studioId: string;
     readonly discountPaise: number;
   } | null,
+  shippingCostAllocation: ShippingCostAllocation = "includedInPrice",
 ): CheckoutDraft {
   const subtotalPaise = items.reduce((sum, item) => sum + item.unitPricePaise * item.quantity, 0);
   const studioIds = new Set(items.map((item) => item.studioId));
-  const shippingPaise = studioIds.size * 9900;
+  const shippingPaise = shippingCostAllocation === "buyerPaid" ? studioIds.size * 9900 : 0;
   const discountPaise = Math.min(
     subtotalPaise,
     Math.max(0, Math.trunc(coupon?.discountPaise ?? 0)),

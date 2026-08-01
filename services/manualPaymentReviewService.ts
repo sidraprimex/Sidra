@@ -9,7 +9,7 @@ import {
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { CartLineItem, ShippingAddress } from "@/types/phase6-commerce";
 import type { SellerCoupon } from "@/types/phase11-seller-growth";
-import { getSellerCommerceSettings } from "@/services/businessConfigurationService";
+import { getLogisticsSettings, getSellerCommerceSettings } from "@/services/businessConfigurationService";
 
 interface ManualRequestRecord {
   customerId: string;
@@ -82,7 +82,7 @@ export async function verifyManualMarketplacePayment(
   if (!customerSnapshot.exists()) throw new Error("Customer profile is missing.");
   const customer = customerSnapshot.data();
 
-  const [costEntries, commerceSettings] = await Promise.all([Promise.all(
+  const [costEntries, commerceSettings, logisticsSettings] = await Promise.all([Promise.all(
     paymentRequest.items.map(async (item) => {
       const [costSnapshot, productSnapshot] = await Promise.all([
         getDoc(doc(db, "productCostings", item.productId)),
@@ -93,7 +93,7 @@ export async function verifyManualMarketplacePayment(
         inventoryMode: productSnapshot.data()?.inventoryMode,
       } as ProductCostingRecord] as const;
     }),
-  ), getSellerCommerceSettings()]);
+  ), getSellerCommerceSettings(), getLogisticsSettings()]);
   const costByProduct = new Map(costEntries);
   const byStudio = new Map<string, CartLineItem[]>();
   for (const item of paymentRequest.items) {
@@ -104,7 +104,7 @@ export async function verifyManualMarketplacePayment(
     (sum, item) => sum + item.unitPricePaise * item.quantity,
     0,
   );
-  const calculatedShippingPaise = byStudio.size * 9900;
+  const calculatedShippingPaise = logisticsSettings.shippingCostAllocation === "buyerPaid" ? byStudio.size * 9900 : 0;
   if (
     paymentRequest.subtotalPaise !== calculatedSubtotalPaise ||
     paymentRequest.shippingPaise !== calculatedShippingPaise
@@ -189,7 +189,7 @@ export async function verifyManualMarketplacePayment(
       (sum, item) => sum + item.unitPricePaise * item.quantity,
       0,
     );
-    const shippingPaise = 9900;
+    const shippingPaise = logisticsSettings.shippingCostAllocation === "buyerPaid" ? 9900 : 0;
     const discountPaise =
       studioId === paymentRequest.couponStudioId
         ? verifiedDiscountPaise
@@ -244,6 +244,7 @@ export async function verifyManualMarketplacePayment(
       paymentStatus: "paid",
       subtotalPaise,
       shippingPaise,
+      shippingCostAllocation: logisticsSettings.shippingCostAllocation,
       discountPaise,
       couponCode:
         discountPaise > 0 ? paymentRequest.couponCode : null,

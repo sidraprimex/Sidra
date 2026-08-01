@@ -83,6 +83,7 @@ export async function createProductDraft(
     studioId,
     sellerId,
     ...costing,
+    sellerShippingCostPaise: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -107,6 +108,7 @@ export async function updateProductDraft(productId: string, input: ProductDraftI
     studioId: existing.studioId,
     sellerId: existing.sellerId,
     ...costing,
+    sellerShippingCostPaise: 0,
     updatedAt: serverTimestamp(),
   }, { merge: true });
   await batch.commit();
@@ -159,7 +161,15 @@ export async function uploadProductImages(
 export async function submitProduct(productId: string): Promise<ProductStatus> {
   const existing = await getStudioProduct(productId);
   if (!existing) throw new Error("Product not found.");
-  const validation = validateProductDraft(existing, existing.media, "submit");
+  const costingSnapshot = await getDoc(doc(phase4Firestore(), "productCostings", productId));
+  const costing = costingSnapshot.data() ?? {};
+  const validation = validateProductDraft({
+    ...existing,
+    costing: {
+      makingCostPaise: Number(costing.makingCostPaise ?? 0),
+      sellerShippingCostPaise: 0,
+    },
+  }, existing.media, "submit");
   if (!validation.valid) throw new Error(Object.values(validation.errors)[0]);
   const settings = await getProductModerationSettings();
   const status: ProductStatus = settings.approvalRequired ? "pendingReview" : "published";

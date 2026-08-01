@@ -45,7 +45,7 @@ export const defaultLogisticsSettings: LogisticsSettings = {
   primaryProvider: "delhivery",
   backupProvider: "none",
   defaultPickupLocation: "",
-  shippingCostAllocation: "buyerPaid",
+  shippingCostAllocation: "includedInPrice",
   sellerShareBasisPoints: 0,
   buyerShareBasisPoints: 10_000,
   requireDeliveryOtp: true,
