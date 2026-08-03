@@ -23,8 +23,10 @@ function categoryLabel(value: string): string {
 
 export function PublicStudioProfileClient({
   slug,
+  initialCollectionId = "all",
 }: {
   readonly slug: string;
+  readonly initialCollectionId?: string;
 }): React.JSX.Element {
   const [studio, setStudio] = useState<PublicStudio | null>(null);
   const [products, setProducts] = useState<
@@ -32,7 +34,9 @@ export function PublicStudioProfileClient({
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [collectionId, setCollectionId] = useState("all");
+  const [collectionId, setCollectionId] = useState(
+    initialCollectionId || "all",
+  );
   const [categorySlug, setCategorySlug] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -215,7 +219,7 @@ export function PublicStudioProfileClient({
           ) : null}
         </div>
       </header>
-      <section>
+      <section id="studio-products" className="scroll-mt-24">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.2em] text-[var(--color-gold-600)]">Curated by {studio.name}</p>

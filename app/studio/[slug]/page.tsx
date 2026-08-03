@@ -2,9 +2,18 @@ import { PublicStudioProfileClient } from "@/components/discovery/PublicStudioPr
 
 export default async function PublicStudioPage({
   params,
+  searchParams,
 }: {
   readonly params: Promise<{ slug: string }>;
+  readonly searchParams: Promise<{ collection?: string }>;
 }): Promise<React.JSX.Element> {
   const { slug } = await params;
-  return <PublicStudioProfileClient slug={slug} />;
+  const { collection = "all" } = await searchParams;
+
+  return (
+    <PublicStudioProfileClient
+      slug={slug}
+      initialCollectionId={collection}
+    />
+  );
 }

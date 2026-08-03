@@ -123,7 +123,12 @@ export function Navigation(): React.JSX.Element {
   };
 
   const goBack = (): void => {
-    router.push(accountHref || "/");
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/");
   };
 
   return (

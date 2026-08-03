@@ -698,7 +698,7 @@ export function BestSellersBlock({
         return scoreDifference;
       }
 
-      return second.updatedAt.localeCompare(first.updatedAt);
+      return journalTimestamp(second.updatedAt) - journalTimestamp(first.updatedAt);
     })
     .slice(0, limit);
 
@@ -881,7 +881,7 @@ export function NewArrivalsBlock({
   const visibleProducts = [...products]
     .filter((product) => product.status === "published")
     .sort((first, second) =>
-      second.updatedAt.localeCompare(first.updatedAt),
+      journalTimestamp(second.updatedAt) - journalTimestamp(first.updatedAt),
     )
     .slice(0, limit);
 
