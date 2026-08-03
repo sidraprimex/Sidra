@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -7,6 +8,8 @@ import {
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
   where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -18,6 +21,12 @@ import type {
   ReviewSubmissionInput,
   WishlistItem,
 } from "@/types/phase9-customer";
+
+function notificationDate(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "toDate" in value && typeof (value as { toDate?: unknown }).toDate === "function") return (value as { toDate: () => Date }).toDate().toISOString();
+  return "";
+}
 
 export async function getCustomerDashboardSummary(customerId: string): Promise<CustomerDashboardSummary> {
   const callable = httpsCallable<{ customerId: string }, CustomerDashboardSummary>(
@@ -36,6 +45,11 @@ export async function listCustomerWishlist(customerId: string): Promise<readonly
   return snapshot.docs.map((item) => ({ wishlistItemId: item.id, ...item.data() } as WishlistItem));
 }
 
+export async function isProductWishlisted(customerId: string, productId: string): Promise<boolean> {
+  const { db } = requireFirebaseServices();
+  return (await getDoc(doc(db, "wishlists", customerId, "items", productId))).exists();
+}
+
 export async function toggleWishlistProduct(input: {
   productId: string;
   productSlug: string;
@@ -45,11 +59,21 @@ export async function toggleWishlistProduct(input: {
   studioName: string;
   pricePaise: number;
 }): Promise<{ active: boolean }> {
-  const callable = httpsCallable<typeof input, { active: boolean }>(
-    requireFirebaseServices().functions,
-    "toggleWishlistProduct",
-  );
-  return (await callable(input)).data;
+  const { db, auth } = requireFirebaseServices();
+  const customerId = auth.currentUser?.uid;
+  if (!customerId) throw new Error("Sign in to save this product.");
+  const ref = doc(db, "wishlists", customerId, "items", input.productId);
+  const snapshot = await getDoc(ref);
+  if (snapshot.exists()) {
+    await deleteDoc(ref);
+    return { active: false };
+  }
+  await setDoc(ref, {
+    customerId,
+    ...input,
+    createdAt: serverTimestamp(),
+  });
+  return { active: true };
 }
 
 export async function toggleStudioFollow(studioId: string): Promise<{ active: boolean }> {
@@ -92,11 +116,10 @@ export async function listCustomerNotifications(customerId: string): Promise<rea
   const { db } = requireFirebaseServices();
   const snapshot = await getDocs(query(
     collection(db, "notifications"),
-    where("customerId", "==", customerId),
-    orderBy("createdAt", "desc"),
+    where("recipientUid", "==", customerId),
     limit(100),
   ));
-  return snapshot.docs.map((item) => ({ notificationId: item.id, ...item.data() } as CustomerNotification));
+  return snapshot.docs.map((item) => { const data = item.data(); return { notificationId: item.id, ...data, href: data.actionUrl ?? data.href ?? null, createdAt: notificationDate(data.createdAt) } as CustomerNotification; });
 }
 
 export function subscribeCustomerNotifications(
@@ -106,11 +129,10 @@ export function subscribeCustomerNotifications(
   const { db } = requireFirebaseServices();
   return onSnapshot(query(
     collection(db, "notifications"),
-    where("customerId", "==", customerId),
-    orderBy("createdAt", "desc"),
+    where("recipientUid", "==", customerId),
     limit(100),
   ), (snapshot) => {
-    listener(snapshot.docs.map((item) => ({ notificationId: item.id, ...item.data() } as CustomerNotification)));
+    listener(snapshot.docs.map((item) => { const data = item.data(); return { notificationId: item.id, ...data, href: data.actionUrl ?? data.href ?? null, createdAt: notificationDate(data.createdAt) } as CustomerNotification; }));
   });
 }
 

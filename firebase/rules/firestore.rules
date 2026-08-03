@@ -1079,7 +1079,20 @@ match /reviews/{reviewId} {
 
 match /wishlists/{userId}/items/{productId} {
   allow read: if isAuthenticated() && request.auth.uid == userId;
-  allow write: if false;
+  allow create: if isAuthenticated()
+    && request.auth.uid == userId
+    && request.auth.token.email_verified == true
+    && request.resource.data.customerId == userId
+    && request.resource.data.productId == productId
+    && request.resource.data.pricePaise is int
+    && request.resource.data.pricePaise > 0
+    && request.resource.data.createdAt == request.time
+    && request.resource.data.keys().hasOnly([
+      'customerId', 'productId', 'productSlug', 'productName',
+      'imageUrl', 'studioId', 'studioName', 'pricePaise', 'createdAt'
+    ]);
+  allow update: if false;
+  allow delete: if isAuthenticated() && request.auth.uid == userId;
 }
 
 match /studioFollows/{followId} {

@@ -31,6 +31,11 @@ interface ProductCostingRecord {
   makingCostPaise?: number;
   sellerShippingCostPaise?: number;
   inventoryMode?: string;
+  inventoryCount?: number | null;
+  status?: string;
+  studioId?: string;
+  pricePaise?: number;
+  salePricePaise?: number | null;
 }
 
 function orderNumber(index: number): string {
@@ -91,10 +96,28 @@ export async function verifyManualMarketplacePayment(
       return [item.productId, {
         ...(costSnapshot.exists() ? costSnapshot.data() : {}),
         inventoryMode: productSnapshot.data()?.inventoryMode,
+        inventoryCount: productSnapshot.data()?.inventoryCount,
+        status: productSnapshot.data()?.status,
+        studioId: productSnapshot.data()?.studioId,
+        pricePaise: productSnapshot.data()?.pricePaise,
+        salePricePaise: productSnapshot.data()?.salePricePaise,
       } as ProductCostingRecord] as const;
     }),
   ), getSellerCommerceSettings(), getLogisticsSettings()]);
   const costByProduct = new Map(costEntries);
+  for (const item of paymentRequest.items) {
+    const product = costByProduct.get(item.productId);
+    const expectedPrice = Number(product?.salePricePaise ?? product?.pricePaise ?? 0);
+    if (!product || product.status !== "published" || product.studioId !== item.studioId || expectedPrice <= 0 || item.unitPricePaise !== expectedPrice) {
+      throw new Error("A product or price changed after checkout. Reject this request and ask the buyer to create a fresh checkout.");
+    }
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20) {
+      throw new Error("Invalid product quantity. Reject this request.");
+    }
+    if (product.inventoryMode === "finite" && item.quantity > Number(product.inventoryCount ?? 0)) {
+      throw new Error("Requested quantity is no longer available. Reject this request.");
+    }
+  }
   const byStudio = new Map<string, CartLineItem[]>();
   for (const item of paymentRequest.items) {
     byStudio.set(item.studioId, [...(byStudio.get(item.studioId) ?? []), item]);
@@ -305,6 +328,14 @@ export async function verifyManualMarketplacePayment(
     studioIndex += 1;
   }
 
+  const customerNotificationRef = doc(collection(db, "notifications"));
+  batch.set(customerNotificationRef, {
+    recipientUid: paymentRequest.customerId, type: "paymentVerified", title: "Payment verified · order confirmed",
+    body: "Your Sidra payment was verified and the seller has received the order.",
+    actionUrl: orderIds[0] ? `/account/orders/${orderIds[0]}` : "/account/payments", read: false,
+    orderId: orderIds[0] ?? null, createdAt: serverTimestamp(),
+  });
+
   const paymentRef = doc(collection(db, "payments"));
   batch.set(paymentRef, {
     paymentId: paymentRef.id,
@@ -359,7 +390,7 @@ export async function rejectManualMarketplacePayment(
     type: "paymentRejected",
     title: "Payment verification needs attention",
     body: "Your payment reference could not be verified. Contact Sidra support or submit the correct UTR.",
-    actionUrl: "/account/support",
+    actionUrl: "/account/payments",
     read: false,
     createdAt: serverTimestamp(),
   });

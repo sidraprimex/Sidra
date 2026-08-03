@@ -54,6 +54,15 @@ export interface ShippingPackage {
   readonly costAllocation?: import("@/types/logistics").ShippingCostAllocation;
 }
 
+export interface FulfilmentOrderLineItem {
+  readonly productId: string;
+  readonly variantId: string | null;
+  readonly name: string;
+  readonly qty: number;
+  readonly unitPrice: number;
+  readonly subtotal: number;
+}
+
 export interface FulfilmentOrder {
   readonly orderId: string;
   readonly orderNumber: string;
@@ -63,6 +72,7 @@ export interface FulfilmentOrder {
   readonly customerPhone: string;
   readonly studioId: string;
   readonly studioName: string;
+  readonly lineItems?: readonly FulfilmentOrderLineItem[];
   readonly orderStatus: OrderStatus;
   readonly paymentStatus: "paid" | "refundPending" | "partiallyRefunded" | "refunded";
   readonly totalPaise: number;

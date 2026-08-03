@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calculateCheckoutDraft, formatInr } from "@/utils/cartTotals";
-import { getCart } from "@/services/cartSyncService";
+import { getCart, removeCartItem, safeCartQuantity, updateCartQuantity } from "@/services/cartSyncService";
 import { listAddresses } from "@/services/addressBookService";
 import { initiatePayment, loadRazorpay } from "@/services/checkoutService";
 import {
   createManualPaymentRequest,
   defaultPaymentSettings,
   getCheckoutPaymentSettings,
+  subscribeManualPaymentRequest,
+  type ManualPaymentRecord,
 } from "@/services/paymentConfigurationService";
 import { validateSellerCoupon } from "@/services/sellerGrowthService";
 import type { CustomerCart, ShippingAddress } from "@/types/phase6-commerce";
@@ -63,6 +65,8 @@ export function CheckoutFlow({
   const [error, setError] = useState<string | null>(null);
   const [policiesAccepted, setPoliciesAccepted] = useState(false);
   const [shippingAllocation, setShippingAllocation] = useState<ShippingCostAllocation>(defaultLogisticsSettings.shippingCostAllocation);
+  const [manualStatus, setManualStatus] = useState<ManualPaymentRecord | null>(null);
+  const storageKey = `sidra-checkout-${userId}`;
   const draft = useMemo(
     () => ({
       ...calculateCheckoutDraft(cart.items, appliedCoupon, shippingAllocation),
@@ -72,6 +76,18 @@ export function CheckoutFlow({
   );
 
   useEffect(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "null") as { step?: number; addressId?: string | null; checkoutReference?: string | null; confirmationMode?: "gateway" | "manual" | null; manualReference?: string; policiesAccepted?: boolean } | null;
+      if (stored) {
+        setStep(Math.max(0, Math.min(3, Number(stored.step ?? 0))));
+        setAddressId(stored.addressId ?? null);
+        setCheckoutReference(stored.checkoutReference ?? null);
+        setConfirmationMode(stored.confirmationMode ?? null);
+        setManualReference(stored.manualReference ?? "");
+        setPoliciesAccepted(stored.policiesAccepted === true);
+      }
+    } catch { window.localStorage.removeItem(storageKey); }
+
     void Promise.all([
       getCart(userId),
       listAddresses(userId),
@@ -84,13 +100,25 @@ export function CheckoutFlow({
       setAddresses(nextAddresses);
       setPaymentSettings(settings);
       setShippingAllocation(logistics.shippingCostAllocation);
-      setAddressId(
-        nextAddresses.find((item) => item.isDefault)?.id ??
-          nextAddresses[0]?.id ??
-          null,
-      );
+      setAddressId((current) => current && nextAddresses.some((item) => item.id === current) ? current : nextAddresses.find((item) => item.isDefault)?.id ?? nextAddresses[0]?.id ?? null);
     });
-  }, [userId]);
+  }, [userId, storageKey]);
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify({ step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted }));
+  }, [step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted, storageKey]);
+
+  useEffect(() => checkoutReference && confirmationMode === "manual" ? subscribeManualPaymentRequest(checkoutReference, setManualStatus) : undefined, [checkoutReference, confirmationMode]);
+
+  const refreshCart = async () => setCart(await getCart(userId));
+  const changeQuantity = async (productId: string, variantId: string | null, quantity: number) => {
+    await updateCartQuantity(userId, productId, variantId, safeCartQuantity(quantity));
+    await refreshCart();
+  };
+  const removeItem = async (productId: string, variantId: string | null) => {
+    await removeCartItem(userId, productId, variantId);
+    await refreshCart();
+  };
 
   const applyCoupon = async (): Promise<void> => {
     setCouponBusy(true);
@@ -262,7 +290,8 @@ export function CheckoutFlow({
               {draft.studioCount} Studios.
             </div>
           ) : null}
-          <div className="rounded-[var(--radius-lg)] border border-border bg-card p-6">
+          <div className="grid gap-4 rounded-[var(--radius-lg)] border border-border bg-card p-6">
+            {cart.items.length === 0 ? <p className="text-red-700">Your cart is empty. Return to a product and choose a quantity.</p> : cart.items.map((item) => <div key={item.productId + ":" + (item.variantId ?? "default")} className="grid gap-3 border-b border-border pb-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"><div><strong>{item.productName}</strong><p className="text-sm text-muted">{formatInr(item.unitPricePaise)} each</p></div><label className="text-sm">Qty <input type="number" min="1" max="20" value={item.quantity} onChange={(event) => void changeQuantity(item.productId, item.variantId, Number(event.target.value))} className="ml-2 w-20 rounded-md border border-border px-3 py-2" /></label><button type="button" onClick={() => void removeItem(item.productId, item.variantId)} className="rounded-md border border-border px-3 py-2 text-sm">Remove</button></div>)}
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span>{formatInr(draft.subtotalPaise)}</span>
@@ -335,7 +364,8 @@ export function CheckoutFlow({
             </p>
           </div>
           <button
-            className="justify-self-start rounded-[var(--radius-md)] bg-[var(--color-gold-600)] px-5 py-3 text-white"
+            disabled={cart.items.length === 0}
+            className="justify-self-start rounded-[var(--radius-md)] bg-[var(--color-gold-600)] px-5 py-3 text-white disabled:opacity-50"
             onClick={() => setStep(2)}
           >
             Continue to payment
@@ -506,7 +536,7 @@ export function CheckoutFlow({
           </h2>
           <p className="mt-3 leading-7 text-muted">
             {confirmationMode === "manual"
-              ? "Your UTR is now visible inside the Sidra Admin OS. The admin can verify or reject it, and the status remains stored in Firebase."
+              ? manualStatus?.status === "verified" ? "Payment verified. Your order is confirmed and visible in your account." : manualStatus?.status === "rejected" ? "Payment verification was rejected. Open Payment status or Support before paying again." : "Your payment is pending admin verification. You can close this page and return later; this status is saved in your account."
               : "We are waiting for the verified server webhook before showing an order confirmation."}
           </p>
           {checkoutReference ? (
@@ -522,14 +552,7 @@ export function CheckoutFlow({
               Check verified order status
             </a>
           ) : null}
-          {confirmationMode === "manual" ? (
-            <a
-              className="mt-6 inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3"
-              href="/account/dashboard"
-            >
-              Return to your account
-            </a>
-          ) : null}
+          {confirmationMode === "manual" ? <div className="mt-6 flex flex-wrap gap-3">{manualStatus?.orderIds.map((orderId) => <a key={orderId} className="inline-flex rounded-[var(--radius-md)] bg-[var(--color-deep-plum)] px-5 py-3 text-white" href={`/account/orders/${orderId}`}>Open confirmed order</a>)}<a className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3" href="/account/payments">View payment status</a></div> : null}
         </div>
       ) : null}
     </section>
