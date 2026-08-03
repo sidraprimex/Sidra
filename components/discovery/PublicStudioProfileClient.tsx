@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProductGrid } from "@/components/discovery/ProductGrid";
 import {
   getPublicStudioBySlug,
@@ -12,6 +12,14 @@ import type {
   PublicProduct,
   PublicStudio,
 } from "@/types/phase5-discovery";
+
+function categoryLabel(value: string): string {
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.slice(0, 1).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 export function PublicStudioProfileClient({
   slug,
@@ -25,6 +33,20 @@ export function PublicStudioProfileClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collectionId, setCollectionId] = useState("all");
+  const [categorySlug, setCategorySlug] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => product.categorySlug)
+            .filter((value) => value.trim().length > 0),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
 
   useEffect(() => {
     let active = true;
@@ -97,8 +119,31 @@ export function PublicStudioProfileClient({
   }
 
   const storefront = studio.storefront;
-  const collections = (storefront?.collections ?? []).filter((item) => item.enabled).sort((a, b) => a.sortOrder - b.sortOrder);
-  const visibleProducts = collectionId === "all" ? products : products.filter((product) => product.collectionIds.includes(collectionId));
+  const collections = (storefront?.collections ?? [])
+    .filter((item) => item.enabled)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const visibleProducts = products.filter((product) => {
+    const collectionMatch =
+      collectionId === "all" ||
+      product.collectionIds.includes(collectionId);
+    const categoryMatch =
+      categorySlug === "all" ||
+      product.categorySlug === categorySlug;
+    const searchText = [
+      product.name,
+      product.shortDescription,
+      product.description,
+      product.categorySlug,
+      ...(product.materials ?? []),
+    ]
+      .join(" ")
+      .toLowerCase();
+    const searchMatch =
+      normalizedSearch.length === 0 ||
+      searchText.includes(normalizedSearch);
+    return collectionMatch && categoryMatch && searchMatch;
+  });
   const centered = storefront?.heroAlignment === "center";
 
   return (
@@ -171,9 +216,64 @@ export function PublicStudioProfileClient({
         </div>
       </header>
       <section>
-        <h2 className="font-heading text-4xl">Studio collections</h2>
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[.2em] text-[var(--color-gold-600)]">Curated by {studio.name}</p>
+            <h2 className="mt-2 font-heading text-4xl">Explore this Studio</h2>
+          </div>
+          <Link href="/studios" className="inline-flex w-fit rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold transition hover:border-[var(--color-gold-600)]">
+            Browse all verified Studios
+          </Link>
+        </div>
         {storefront?.showCollections !== false && collections.length > 0 ? <div className="mt-5 flex gap-3 overflow-x-auto pb-2"><button type="button" onClick={() => setCollectionId("all")} className={`min-w-max rounded-full px-5 py-3 text-sm font-semibold ${collectionId === "all" ? "text-white" : "border border-border bg-card"}`} style={collectionId === "all" ? { backgroundColor: storefront?.accentColor } : undefined}>All pieces</button>{collections.map((collection) => <button type="button" key={collection.id} onClick={() => setCollectionId(collection.id)} className={`min-w-max rounded-full px-5 py-3 text-sm font-semibold ${collectionId === collection.id ? "text-white" : "border border-border bg-card"}`} style={collectionId === collection.id ? { backgroundColor: storefront?.accentColor } : undefined}>{collection.name}</button>)}</div> : null}
         {collectionId !== "all" ? <p className="mt-4 max-w-2xl text-sm text-muted">{collections.find((item) => item.id === collectionId)?.description}</p> : null}
+
+        <div className="mt-7 grid gap-4 rounded-[var(--radius-lg)] border border-border bg-card p-5 shadow-[var(--shadow-card)] md:grid-cols-[minmax(0,1fr)_280px]">
+          <label className="grid gap-2 text-sm font-semibold">
+            Search this Studio
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search products, materials or styles"
+              className="rounded-full border border-border bg-background px-5 py-3 font-normal outline-none focus:border-[var(--color-gold-600)]"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            Product category
+            <select
+              value={categorySlug}
+              onChange={(event) => setCategorySlug(event.target.value)}
+              className="rounded-full border border-border bg-background px-5 py-3 font-normal outline-none focus:border-[var(--color-gold-600)]"
+            >
+              <option value="all">All categories</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {categoryLabel(category)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-wrap items-center justify-between gap-3 md:col-span-2">
+            <p className="text-sm text-muted">
+              Showing {visibleProducts.length} of {products.length} pieces
+            </p>
+            {(searchQuery || categorySlug !== "all" || collectionId !== "all") ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategorySlug("all");
+                  setCollectionId("all");
+                }}
+                className="rounded-full border border-border px-4 py-2 text-xs font-semibold"
+              >
+                Clear filters
+              </button>
+            ) : null}
+          </div>
+        </div>
+
         <div className="mt-7">
           <ProductGrid products={visibleProducts} />
         </div>
