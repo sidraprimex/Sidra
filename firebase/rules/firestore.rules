@@ -124,7 +124,7 @@ service cloud.firestore {
         && request.resource.data.studioId == resource.data.studioId
         && request.resource.data.productId == resource.data.productId
         && (
-          request.resource.data.status in ['draft', 'pendingReview', 'hidden', 'archived']
+          request.resource.data.status in ['draft', 'pendingReview', 'published', 'hidden', 'archived']
           || (resource.data.status == 'published' && request.resource.data.status == 'published')
         )
         && changedOnly([

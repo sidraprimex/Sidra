@@ -15,7 +15,6 @@ import {
 } from "firebase/firestore";
 import { phase4Firestore } from "@/services/phase4Firebase";
 import { uploadB2Media } from "@/services/b2MediaService";
-import { getProductModerationSettings } from "@/services/productModerationService";
 import type {
   ProductDraftInput,
   ProductMedia,
@@ -171,8 +170,7 @@ export async function submitProduct(productId: string): Promise<ProductStatus> {
     },
   }, existing.media, "submit");
   if (!validation.valid) throw new Error(Object.values(validation.errors)[0]);
-  const settings = await getProductModerationSettings();
-  const status: ProductStatus = settings.approvalRequired ? "pendingReview" : "published";
+  const status: ProductStatus = "published";
   await updateDoc(doc(phase4Firestore(), "products", productId), {
     status,
     submittedAt: serverTimestamp(),
