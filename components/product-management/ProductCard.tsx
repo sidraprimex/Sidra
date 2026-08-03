@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { StudioProduct } from "@/types/phase4-product";
 import { ProductStatusBadge } from "@/components/product-management/ProductStatusBadge";
 
@@ -18,7 +19,14 @@ export function ProductCard({ product }: { readonly product: StudioProduct }): R
   const image = product.heroImageUrl ?? product.media.find((item) => item.kind === "image")?.url ?? null;
   const shape = frameClass[product.categorySlug] ?? "aspect-[4/5]";
   return (
-    <article className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-[var(--shadow-card)]">
+    <article className="relative overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:shadow-xl">
+      {product.status === "published" ? (
+        <Link
+          href={"/product/" + encodeURIComponent(product.slug)}
+          aria-label={"View " + product.name}
+          className="absolute inset-0 z-10 rounded-[var(--radius-lg)]"
+        />
+      ) : null}
       <div className={`relative overflow-hidden bg-background ${shape}`}>
         {image ? <Image src={image} alt={product.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" /> : null}
       </div>

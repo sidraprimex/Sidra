@@ -200,7 +200,20 @@ export async function getPublicProductBySlug(slug: string): Promise<PublicProduc
       limit(1),
     ),
   );
-  return snapshot.empty ? null : ({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as PublicProduct);
+  if (snapshot.empty) return null;
+  const product = {
+    id: snapshot.docs[0].id,
+    ...snapshot.docs[0].data(),
+  } as PublicProduct;
+  const studioSnapshot = await getDoc(
+    doc(phase4Firestore(), "studios", product.studioId),
+  );
+  const studioData = studioSnapshot.data() ?? {};
+  return {
+    ...product,
+    studioName: stringValue(studioData.name, "Sidra Studio"),
+    studioSlug: stringValue(studioData.slug),
+  };
 }
 
 export async function listRelatedProducts(product: PublicProduct): Promise<readonly PublicProduct[]> {
