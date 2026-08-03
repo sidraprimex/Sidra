@@ -980,7 +980,8 @@ service cloud.firestore {
           'customerId', 'addressId', 'items', 'subtotalPaise',
           'shippingPaise', 'discountPaise', 'couponId',
           'couponCode', 'couponStudioId', 'totalPaise',
-          'paymentReference', 'status', 'adminNote', 'verifiedBy',
+          'paymentReference', 'acceptedPolicies',
+          'status', 'adminNote', 'verifiedBy',
           'createdAt', 'updatedAt'
         ]);
       allow read: if founder() || (signedIn() && resource.data.customerId == uid());
