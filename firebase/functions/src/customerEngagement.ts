@@ -58,7 +58,7 @@ export const getCustomerDashboardSummary = onCall(async (request) => {
     db.collection("wishlists").doc(uid).collection("items").count().get(),
     db.collection("studioFollows").where("customerId", "==", uid).count().get(),
     db.collection("reviews").where("customerId", "==", uid).where("status", "==", "pending").count().get(),
-    db.collection("notifications").where("customerId", "==", uid).where("read", "==", false).count().get(),
+    db.collection("notifications").where("recipientUid", "==", uid).where("read", "==", false).count().get(),
   ]);
   return {
     activeOrderCount: activeOrders.data().count,

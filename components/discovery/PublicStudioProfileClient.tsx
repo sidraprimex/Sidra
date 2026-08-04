@@ -149,11 +149,14 @@ export function PublicStudioProfileClient({
     return collectionMatch && categoryMatch && searchMatch;
   });
   const centered = storefront?.heroAlignment === "center";
+  const sectionOrder = storefront?.sectionOrder ?? ["hero", "story", "collections", "products", "policies"];
+  const sectionPosition = (name: string) => Math.max(0, sectionOrder.indexOf(name as never)) + 1;
+  const motionClass = storefront?.motion === "still" ? "" : storefront?.motion === "cinematic" ? "animate-[fadeIn_.9s_ease-out] transition duration-700 hover:-translate-y-1" : "animate-[fadeIn_.45s_ease-out] transition duration-300";
 
   return (
     <main className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-8 sm:px-8 sm:py-12">
       {storefront?.announcement ? <div className="rounded-full px-5 py-3 text-center text-xs font-semibold uppercase tracking-[.18em] text-white" style={{ backgroundColor: storefront.accentColor }}>{storefront.announcement}</div> : null}
-      <header className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card">
+      <header style={{ order: sectionPosition("hero") }} className={`overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card ${motionClass}`}>
         <div className="relative min-h-52 bg-[linear-gradient(135deg,#31162d,#d8b7a7)] sm:min-h-72">
           {studio.bannerUrl ? (
             <Image
@@ -219,7 +222,7 @@ export function PublicStudioProfileClient({
           ) : null}
         </div>
       </header>
-      <section id="studio-products" className="scroll-mt-24">
+      <section id="studio-products" style={{ order: sectionPosition("products") }} className={`scroll-mt-24 ${motionClass}`}>
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.2em] text-[var(--color-gold-600)]">Curated by {studio.name}</p>
@@ -282,7 +285,7 @@ export function PublicStudioProfileClient({
           <ProductGrid products={visibleProducts} />
         </div>
       </section>
-      {storefront?.showPolicies !== false && Object.keys(studio.policies).length > 0 ? <section className="rounded-[var(--radius-lg)] border border-border bg-card p-7"><h2 className="font-heading text-3xl">Studio policies</h2><div className="mt-5 grid gap-4 md:grid-cols-3">{Object.entries(studio.policies).map(([name, content]) => content ? <article key={name}><h3 className="text-sm font-semibold capitalize">{name.replace(/([A-Z])/g, " $1")}</h3><p className="mt-2 text-sm leading-6 text-muted">{content}</p></article> : null)}</div></section> : null}
+      {storefront?.showPolicies !== false && Object.keys(studio.policies).length > 0 ? <section style={{ order: sectionPosition("policies") }} className={`rounded-[var(--radius-lg)] border border-border bg-card p-7 ${motionClass}`}><h2 className="font-heading text-3xl">Studio policies</h2><div className="mt-5 grid gap-4 md:grid-cols-3">{Object.entries(studio.policies).map(([name, content]) => content ? <article key={name}><h3 className="text-sm font-semibold capitalize">{name.replace(/([A-Z])/g, " $1")}</h3><p className="mt-2 text-sm leading-6 text-muted">{content}</p></article> : null)}</div></section> : null}
     </main>
   );
 }

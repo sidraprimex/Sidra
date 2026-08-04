@@ -4,7 +4,7 @@
   "private": true,
   "description": "Sidra — a curated luxury digital ecosystem for resin art and handcrafted goods.",
   "engines": {
-    "node": ">=20.9.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev",

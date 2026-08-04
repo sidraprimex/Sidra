@@ -4,7 +4,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { calculateCommissionPaise, type CommissionConfig } from "./commissionEngine";
 import { isLegalTransition, type ActorRole, type OrderStatus } from "./orderStateMachine";
 
-const customerVisibleStatuses = new Set<OrderStatus>(["placed", "shipped", "inTransit", "outForDelivery", "delivered", "completed", "cancelled", "refunded"]);
+const customerVisibleStatuses = new Set<OrderStatus>(["placed", "accepted", "inProduction", "qualityCheck", "packaged", "readyToShip", "shipped", "inTransit", "outForDelivery", "delivered", "completed", "cancelled", "refundRequested", "refunded"]);
 
 export const updateOrderStatus = onCall(async (request) => {
   if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Authentication required.");
@@ -151,6 +151,16 @@ export const updateOrderStatus = onCall(async (request) => {
       before: { orderStatus: current },
       after: { orderStatus: nextStatus },
       reason: reason || null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    if (order.customerId) transaction.create(db.collection("notifications").doc(), {
+      recipientUid: order.customerId,
+      type: "orderStatusUpdated",
+      title: `Order ${String(order.orderNumber ?? orderId)} updated`,
+      body: `Your order is now ${nextStatus}.`,
+      actionUrl: `/account/orders/${orderId}`,
+      read: false,
+      orderId,
       createdAt: FieldValue.serverTimestamp(),
     });
   });

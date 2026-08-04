@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import crypto from "node:crypto";
+import { resolveSecureCheckout } from "./secureCheckout";
 
 const razorpayKeyId = defineSecret("RAZORPAY_KEY_ID");
 const razorpayKeySecret = defineSecret("RAZORPAY_KEY_SECRET");
@@ -10,12 +11,8 @@ export const initiatePayment = onCall({ secrets: [razorpayKeyId, razorpayKeySecr
   if (!request.auth?.uid || request.auth.token.email_verified !== true) {
     throw new HttpsError("unauthenticated", "Verified account required.");
   }
-  const checkout = request.data?.checkout;
-  if (!checkout || !Array.isArray(checkout.items) || checkout.items.length === 0) {
-    throw new HttpsError("invalid-argument", "A non-empty checkout is required.");
-  }
-  const amountPaise = Number(checkout.totalPaise);
-  if (!Number.isInteger(amountPaise) || amountPaise <= 0) throw new HttpsError("invalid-argument", "Invalid amount.");
+  const checkout = await resolveSecureCheckout(request.auth.uid, request.data?.checkout);
+  const amountPaise = checkout.totalPaise;
   const checkoutReference = crypto.randomUUID();
   const credentials = Buffer.from(`${razorpayKeyId.value()}:${razorpayKeySecret.value()}`).toString("base64");
   const response = await fetch("https://api.razorpay.com/v1/orders", {

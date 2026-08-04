@@ -87,6 +87,14 @@ export function Navigation(): React.JSX.Element {
     };
   }, []);
 
+  useEffect(() => {
+    const key = "sidra-navigation-history";
+    try {
+      const history = JSON.parse(window.sessionStorage.getItem(key) ?? "[]") as string[];
+      if (history.at(-1) !== pathname) window.sessionStorage.setItem(key, JSON.stringify([...history.filter((item) => item !== pathname), pathname].slice(-30)));
+    } catch { window.sessionStorage.setItem(key, JSON.stringify([pathname])); }
+  }, [pathname]);
+
   const accountHref = resolveAccountHref(
     claims?.role ?? profile?.role,
     claims?.studioId ?? profile?.studioId ?? undefined,
@@ -123,12 +131,14 @@ export function Navigation(): React.JSX.Element {
   };
 
   const goBack = (): void => {
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-
-    router.push("/");
+    try {
+      const key = "sidra-navigation-history";
+      const history = JSON.parse(window.sessionStorage.getItem(key) ?? "[]") as string[];
+      const current = history.lastIndexOf(pathname);
+      const previous = current > 0 ? history[current - 1] : null;
+      if (previous && previous !== "/register" && previous !== "/login") { window.sessionStorage.setItem(key, JSON.stringify(history.slice(0, current))); router.push(previous); return; }
+    } catch { /* browser history fallback below */ }
+    if (window.history.length > 1) router.back(); else router.push("/");
   };
 
   return (
