@@ -2,37 +2,22 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import type { FulfilmentOrder, OrderStatus } from "@/types/phase7-orders";
+import { formatInr } from "@/utils/cartTotals";
 
 const columns: readonly { title: string; statuses: readonly OrderStatus[] }[] = [
-  { title: "Pending", statuses: ["placed"] },
-  { title: "Accepted", statuses: ["accepted"] },
-  { title: "Production Queue", statuses: ["inProduction", "qualityCheck"] },
-  { title: "Ready to Pack", statuses: ["packaged"] },
-  { title: "Packed", statuses: ["readyToShip"] },
-  { title: "Awaiting Pickup", statuses: ["shipped"] },
-  { title: "Shipped", statuses: ["inTransit", "outForDelivery"] },
-  { title: "Completed", statuses: ["delivered", "completed"] },
+  { title:"New orders",statuses:["placed"] },{title:"Accepted",statuses:["accepted"]},{title:"In creation",statuses:["inProduction","qualityCheck"]},{title:"Packing",statuses:["packaged","readyToShip"]},{title:"In transit",statuses:["shipped","inTransit","outForDelivery"]},{title:"Completed",statuses:["delivered","completed"]},
 ];
 
 export function SellerOrderBoard({ orders }: { readonly orders: readonly FulfilmentOrder[] }): React.JSX.Element {
-  const [view, setView] = useState<"board" | "table">("board");
-  const [search, setSearch] = useState("");
-  const filtered = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    if (!needle) return orders;
-    return orders.filter((order) => [order.orderNumber, order.customerName, order.customerEmail, order.orderStatus].some((value) => value.toLowerCase().includes(needle)));
-  }, [orders, search]);
-
-  return <section className="grid gap-6">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer or status" className="min-w-64 rounded-[var(--radius-md)] border border-border bg-card px-4 py-3" />
-      <div className="flex gap-2"><button onClick={() => setView("board")} className="rounded-[var(--radius-md)] border border-border px-4 py-2">Board</button><button onClick={() => setView("table")} className="rounded-[var(--radius-md)] border border-border px-4 py-2">Table</button></div>
-    </div>
-    {filtered.length === 0 ? <div className="rounded-[var(--radius-lg)] border border-border bg-card p-10 text-center text-muted">No orders match this view.</div> : null}
-    {view === "board" ? <div className="grid gap-4 overflow-x-auto lg:grid-cols-4">{columns.map((column) => {
-      const items = filtered.filter((order) => column.statuses.includes(order.orderStatus));
-      return <div key={column.title} className="min-w-64 rounded-[var(--radius-lg)] border border-border bg-card p-4"><div className="flex justify-between"><h2 className="font-heading text-xl">{column.title}</h2><span className="text-sm text-muted">{items.length}</span></div><div className="mt-4 grid gap-3">{items.map((order) => <Link key={order.orderId} href={`/studio-admin/orders/${order.orderId}`} className="rounded-[var(--radius-md)] border border-border bg-background p-4"><span className="block text-xs text-muted">{order.orderNumber}</span><span className="mt-2 block font-medium">{order.customerName}</span></Link>)}</div></div>;
-    })}</div> : <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border bg-card"><table className="w-full text-left text-sm"><thead><tr className="border-b border-border"><th className="p-4">Order</th><th className="p-4">Customer</th><th className="p-4">Status</th><th className="p-4">Studio</th></tr></thead><tbody>{filtered.map((order) => <tr key={order.orderId} className="border-b border-border last:border-0"><td className="p-4"><Link href={`/studio-admin/orders/${order.orderId}`}>{order.orderNumber}</Link></td><td className="p-4">{order.customerName}</td><td className="p-4">{order.orderStatus}</td><td className="p-4">{order.studioName}</td></tr>)}</tbody></table></div>}
+  const [view,setView]=useState<"board"|"table">("board"); const [search,setSearch]=useState("");
+  const filtered=useMemo(()=>{const needle=search.trim().toLowerCase();if(!needle)return orders;return orders.filter(order=>[order.orderNumber,order.customerName,order.customerEmail,order.customerPhone,order.orderStatus,...(order.lineItems??[]).map(i=>i.name)].some(value=>value.toLowerCase().includes(needle)));},[orders,search]);
+  const newCount=orders.filter(order=>order.orderStatus==="placed").length;
+  return <section className="grid gap-7">
+    <div className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(120deg,#3B1E35,#1C1C1C)] p-7 text-white shadow-[0_30px_80px_rgba(59,30,53,.24)]"><div className="absolute -right-12 -top-20 h-56 w-56 rounded-full border border-[rgba(213,189,159,.25)]"/><p className="text-xs uppercase tracking-[.22em] text-[var(--color-champagne)]">Live fulfilment room</p><div className="mt-3 flex flex-wrap items-end justify-between gap-4"><div><h2 className="font-display text-5xl">{newCount} new order{newCount===1?"":"s"}</h2><p className="mt-2 text-sm text-white/65">Products, quantity, buyer details, payment and delivery address remain attached to every order.</p></div><span className="rounded-full bg-[var(--color-dusty-rose)] px-5 py-3 text-sm font-semibold text-[var(--color-deep-plum)]">{orders.length} total</span></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search order, buyer, product or status" className="min-w-64 flex-1 rounded-full border border-[rgba(59,30,53,.14)] bg-white/80 px-5 py-3 shadow-sm"/><div className="flex rounded-full border border-[rgba(59,30,53,.12)] bg-white/70 p-1"><button onClick={()=>setView("board")} className={`rounded-full px-5 py-2 text-sm ${view==="board"?"bg-[var(--color-deep-plum)] text-white":""}`}>Board</button><button onClick={()=>setView("table")} className={`rounded-full px-5 py-2 text-sm ${view==="table"?"bg-[var(--color-deep-plum)] text-white":""}`}>Table</button></div></div>
+    {filtered.length===0?<div className="rounded-[2rem] border border-[rgba(59,30,53,.12)] bg-white/75 p-14 text-center"><p className="font-display text-3xl text-[var(--color-deep-plum)]">No orders in this view</p><p className="mt-2 text-sm text-black/55">Paid orders appear here automatically after verification.</p></div>:null}
+    {view==="board"?<div className="grid gap-4 overflow-x-auto xl:grid-cols-3">{columns.map(column=>{const items=filtered.filter(order=>column.statuses.includes(order.orderStatus));return <section key={column.title} className="min-w-[280px] rounded-[1.8rem] border border-[rgba(59,30,53,.11)] bg-[rgba(248,244,240,.78)] p-4 shadow-[0_18px_50px_rgba(59,30,53,.07)]"><div className="flex items-center justify-between px-2 py-2"><h3 className="font-display text-2xl text-[var(--color-deep-plum)]">{column.title}</h3><span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--color-champagne)] text-xs font-bold">{items.length}</span></div><div className="mt-3 grid gap-3">{items.map(order=><motion.div key={order.orderId} whileHover={{y:-3}}><Link href={`/studio-admin/orders/${order.orderId}`} className="block rounded-[1.4rem] border border-[rgba(59,30,53,.10)] bg-white/90 p-5 shadow-sm"><div className="flex justify-between gap-3"><span className="text-xs font-semibold uppercase tracking-[.16em] text-black/45">{order.orderNumber}</span><span className="text-xs font-semibold text-[var(--color-deep-plum)]">{formatInr(order.totalPaise)}</span></div><p className="mt-3 font-display text-2xl text-[var(--color-deep-plum)]">{order.customerName}</p><p className="mt-2 line-clamp-2 text-sm text-black/55">{(order.lineItems??[]).map(item=>`${item.name} × ${item.qty}`).join(" · ")||"Open complete order"}</p><p className="mt-4 text-xs text-black/45">{order.shippingAddress.city||"Address available inside"} {order.shippingAddress.postalCode||""}</p></Link></motion.div>)}</div></section>})}</div>:<div className="overflow-x-auto rounded-[1.8rem] border border-[rgba(59,30,53,.12)] bg-white/80"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-[rgba(213,189,159,.22)]"><tr><th className="p-4">Order</th><th className="p-4">Buyer</th><th className="p-4">Products</th><th className="p-4">Amount</th><th className="p-4">Status</th></tr></thead><tbody>{filtered.map(order=><tr key={order.orderId} className="border-t border-[rgba(59,30,53,.08)]"><td className="p-4"><Link className="font-semibold text-[var(--color-deep-plum)]" href={`/studio-admin/orders/${order.orderId}`}>{order.orderNumber}</Link></td><td className="p-4">{order.customerName}<br/><span className="text-xs text-black/45">{order.customerPhone}</span></td><td className="p-4">{(order.lineItems??[]).map(i=>`${i.name} × ${i.qty}`).join(", ")}</td><td className="p-4">{formatInr(order.totalPaise)}</td><td className="p-4">{order.orderStatus}</td></tr>)}</tbody></table></div>}
   </section>;
 }
