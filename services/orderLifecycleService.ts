@@ -1,5 +1,5 @@
 import { collection, doc, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type {
   FulfilmentOrder,
@@ -34,7 +34,10 @@ function mapOrder(id: string, data: Record<string, unknown>, studioId?: string):
     customerEmail:String(data.customerEmail ?? customer.email ?? ""), customerPhone:String(data.customerPhone ?? customer.phone ?? address.phone ?? ""),
     studioId:studioId ?? String(data.studioId ?? ""), studioName:String(data.studioName ?? "Sidra Studio"), lineItems,
     orderStatus:normalizedStatus as FulfilmentOrder["orderStatus"], paymentStatus:(data.paymentStatus ?? "paid") as FulfilmentOrder["paymentStatus"],
-    totalPaise, invoiceUrl:String(data.invoiceUrl ?? ""), customOrderId:data.customOrderId ? String(data.customOrderId) : null,
+    totalPaise, subtotalPaise:Number(data.subtotalPaise ?? totalPaise), discountPaise:Number(data.discountPaise ?? 0),
+    sellerCostPaise:Number(data.sellerCostPaise ?? 0), profitPaise:Number(data.profitPaise ?? 0),
+    commissionPaise:Number(data.commissionPaise ?? 0), sellerEarningPaise:Number(data.sellerEarningPaise ?? 0),
+    invoiceUrl:String(data.invoiceUrl ?? ""), customOrderId:data.customOrderId ? String(data.customOrderId) : null,
     shippingAddress:address, shippingPackage:(data.shippingPackage ?? null) as FulfilmentOrder["shippingPackage"],
     timeline:Array.isArray(data.timeline) ? data.timeline as FulfilmentOrder["timeline"] : [], createdAt:dateValue(data.createdAt), updatedAt:dateValue(data.updatedAt),
   };
@@ -64,16 +67,11 @@ export function subscribeOrder(orderId: string, listener: (order: FulfilmentOrde
 }
 
 export async function updateOrderStatus(input: OrderStatusUpdateInput): Promise<void> {
-  const callable = httpsCallable<OrderStatusUpdateInput, { accepted: true }>(requireFirebaseServices().functions, "updateOrderStatus");
-  await callable(input);
+  await callVercelBackend("updateOrderStatus", input);
 }
 
 export async function requestRefund(input: RefundRequestInput): Promise<void> {
-  const callable = httpsCallable<RefundRequestInput, { accepted: true }>(
-    requireFirebaseServices().functions,
-    "requestOrderRefund",
-  );
-  await callable(input);
+  await callVercelBackend("requestOrderRefund", input);
 }
 
 export async function listStudioPayouts(studioId: string): Promise<readonly SellerPayout[]> {

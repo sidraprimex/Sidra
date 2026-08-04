@@ -1,19 +1,16 @@
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { AdminAuditLog, CommerceSettings, FinanceLedgerEntry, FounderControlCenterSummary, PlatformContentEntry } from "@/types/phase10-founder-admin";
 
 export async function getFounderControlCenterSummary(): Promise<FounderControlCenterSummary> {
-  const call = httpsCallable<Record<string, never>, FounderControlCenterSummary>(requireFirebaseServices().functions, "getFounderControlCenterSummary");
-  return (await call({})).data;
+  return callVercelBackend("getFounderControlCenterSummary", {});
 }
 export async function savePlatformContent(input: { contentId?: string; namespace: string; key: string; value: string; description: string; status: "draft" | "published" | "archived" }): Promise<{ contentId: string }> {
-  const call = httpsCallable<typeof input, { contentId: string }>(requireFirebaseServices().functions, "savePlatformContent");
-  return (await call(input)).data;
+  return callVercelBackend("savePlatformContent", input);
 }
 export async function saveCommerceSettings(input: CommerceSettings): Promise<void> {
-  const call = httpsCallable<CommerceSettings, { accepted: true }>(requireFirebaseServices().functions, "saveCommerceSettings");
-  await call(input);
+  await callVercelBackend("saveCommerceSettings", input);
 }
 export async function listPlatformContent(): Promise<readonly PlatformContentEntry[]> {
   const { db } = requireFirebaseServices();

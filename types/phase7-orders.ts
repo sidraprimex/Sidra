@@ -76,6 +76,12 @@ export interface FulfilmentOrder {
   readonly orderStatus: OrderStatus;
   readonly paymentStatus: "paid" | "refundPending" | "partiallyRefunded" | "refunded";
   readonly totalPaise: number;
+  readonly subtotalPaise: number;
+  readonly discountPaise: number;
+  readonly sellerCostPaise: number;
+  readonly profitPaise: number;
+  readonly commissionPaise: number;
+  readonly sellerEarningPaise: number;
   readonly invoiceUrl: string;
   readonly customOrderId: string | null;
   readonly shippingAddress: Record<string, string>;

@@ -1,6 +1,5 @@
 import {
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -8,11 +7,9 @@ import {
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
-  setDoc,
   where,
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type {
   CustomerDashboardSummary,
@@ -29,11 +26,7 @@ function notificationDate(value: unknown): string {
 }
 
 export async function getCustomerDashboardSummary(customerId: string): Promise<CustomerDashboardSummary> {
-  const callable = httpsCallable<{ customerId: string }, CustomerDashboardSummary>(
-    requireFirebaseServices().functions,
-    "getCustomerDashboardSummary",
-  );
-  return (await callable({ customerId })).data;
+  return callVercelBackend("getCustomerDashboardSummary", { customerId });
 }
 
 export async function listCustomerWishlist(customerId: string): Promise<readonly WishlistItem[]> {
@@ -59,45 +52,19 @@ export async function toggleWishlistProduct(input: {
   studioName: string;
   pricePaise: number;
 }): Promise<{ active: boolean }> {
-  const { db, auth } = requireFirebaseServices();
-  const customerId = auth.currentUser?.uid;
-  if (!customerId) throw new Error("Sign in to save this product.");
-  const ref = doc(db, "wishlists", customerId, "items", input.productId);
-  const snapshot = await getDoc(ref);
-  if (snapshot.exists()) {
-    await deleteDoc(ref);
-    return { active: false };
-  }
-  await setDoc(ref, {
-    customerId,
-    ...input,
-    createdAt: serverTimestamp(),
-  });
-  return { active: true };
+  return callVercelBackend("toggleWishlistProduct", input);
 }
 
 export async function toggleStudioFollow(studioId: string): Promise<{ active: boolean }> {
-  const callable = httpsCallable<{ studioId: string }, { active: boolean }>(
-    requireFirebaseServices().functions,
-    "toggleStudioFollow",
-  );
-  return (await callable({ studioId })).data;
+  return callVercelBackend("toggleStudioFollow", { studioId });
 }
 
 export async function submitProductReview(input: ReviewSubmissionInput): Promise<{ reviewId: string }> {
-  const callable = httpsCallable<ReviewSubmissionInput, { reviewId: string }>(
-    requireFirebaseServices().functions,
-    "submitProductReview",
-  );
-  return (await callable(input)).data;
+  return callVercelBackend("submitProductReview", input);
 }
 
 export async function respondToReview(reviewId: string, response: string): Promise<void> {
-  const callable = httpsCallable<{ reviewId: string; response: string }, { accepted: true }>(
-    requireFirebaseServices().functions,
-    "respondToReview",
-  );
-  await callable({ reviewId, response });
+  await callVercelBackend("respondToReview", { reviewId, response });
 }
 
 export async function listPublishedProductReviews(productId: string): Promise<readonly ProductReview[]> {

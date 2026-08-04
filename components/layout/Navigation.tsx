@@ -138,7 +138,7 @@ export function Navigation(): React.JSX.Element {
       const previous = current > 0 ? history[current - 1] : null;
       if (previous && previous !== "/register" && previous !== "/login") { window.sessionStorage.setItem(key, JSON.stringify(history.slice(0, current))); router.push(previous); return; }
     } catch { /* browser history fallback below */ }
-    if (window.history.length > 1) router.back(); else router.push("/");
+    router.push(user ? accountHref : "/");
   };
 
   return (

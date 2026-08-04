@@ -1,17 +1,16 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
   onSnapshot,
   query,
-  serverTimestamp,
   where,
 } from "firebase/firestore";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { CheckoutDraft, CustomerCart } from "@/types/phase6-commerce";
 import type { CheckoutPaymentSettings } from "@/types/payment-settings";
+import { callVercelBackend } from "@/services/vercelBackendService";
 
 export type ManualPaymentStatus = "pendingVerification" | "verified" | "rejected";
 export interface ManualPaymentRecord {
@@ -59,17 +58,15 @@ export async function getCheckoutPaymentSettings(): Promise<CheckoutPaymentSetti
 }
 
 export async function createManualPaymentRequest(input: { userId: string; addressId: string; cart: CustomerCart; checkout: CheckoutDraft; paymentReference: string; acceptedPolicies: Readonly<Record<string, string>>; }): Promise<string> {
-  const { db } = requireFirebaseServices();
-  const created = await addDoc(collection(db, "manualPaymentRequests"), {
-    customerId: input.userId, addressId: input.addressId, items: input.cart.items,
-    subtotalPaise: input.checkout.subtotalPaise, shippingPaise: input.checkout.shippingPaise,
-    discountPaise: input.checkout.discountPaise, couponId: input.checkout.couponId,
-    couponCode: input.checkout.couponCode, couponStudioId: input.checkout.couponStudioId,
-    totalPaise: input.checkout.totalPaise, paymentReference: input.paymentReference.trim(),
-    acceptedPolicies: input.acceptedPolicies, status: "pendingVerification", adminNote: null,
-    verifiedBy: null, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  const result = await callVercelBackend<
+    { checkout: CheckoutDraft; paymentReference: string; acceptedPolicies: Readonly<Record<string, string>> },
+    { requestId: string }
+  >("createManualPaymentRequest", {
+    checkout: { ...input.checkout, addressId: input.addressId, items: input.cart.items },
+    paymentReference: input.paymentReference,
+    acceptedPolicies: input.acceptedPolicies,
   });
-  return created.id;
+  return result.requestId;
 }
 
 export async function listManualPaymentRequests(customerId: string): Promise<readonly ManualPaymentRecord[]> {

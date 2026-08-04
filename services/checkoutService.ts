@@ -1,14 +1,8 @@
-import { httpsCallable } from "firebase/functions";
-import { requireFirebaseServices } from "@/services/firebaseClient";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import type { CheckoutDraft, PaymentSession } from "@/types/phase6-commerce";
 
 export async function initiatePayment(checkout: CheckoutDraft, userId: string): Promise<PaymentSession> {
-  const callable = httpsCallable<{ checkout: CheckoutDraft; userId: string }, PaymentSession>(
-    requireFirebaseServices().functions,
-    "initiatePayment",
-  );
-  const response = await callable({ checkout, userId });
-  return response.data;
+  return callVercelBackend("initiatePayment", { checkout, userId });
 }
 
 export async function loadRazorpay(): Promise<void> {

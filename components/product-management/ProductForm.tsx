@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ProductDraftInput, ProductMedia } from "@/types/phase4-product";
 import type { TaxonomyRecord } from "@/types/phase4-taxonomy";
 import { LiveFramePreview } from "@/components/product-management/LiveFramePreview";
@@ -44,6 +44,7 @@ export function ProductForm({
   subscriptionPlan = "free",
   commissionBasisPoints = 1200,
   planLabel = "Free",
+  draftStorageKey,
   onSave,
   onUpload,
 }: {
@@ -55,6 +56,7 @@ export function ProductForm({
   readonly subscriptionPlan?: SellerSubscriptionPlan;
   readonly commissionBasisPoints?: number;
   readonly planLabel?: string;
+  readonly draftStorageKey?: string;
   readonly onSave: (input: ProductDraftInput, intent: "saveDraft" | "submit") => Promise<void>;
   readonly onUpload: (files: readonly File[], input: ProductDraftInput) => Promise<void>;
 }): React.JSX.Element {
@@ -62,6 +64,22 @@ export function ProductForm({
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const draftReady = useRef(false);
+  useEffect(() => {
+    if (!draftStorageKey) return;
+    try {
+      const stored = window.localStorage.getItem(draftStorageKey);
+      if (stored) setValue(JSON.parse(stored) as ProductDraftInput);
+    } catch {
+      window.localStorage.removeItem(draftStorageKey);
+    } finally {
+      draftReady.current = true;
+    }
+  }, [draftStorageKey]);
+  useEffect(() => {
+    if (!draftStorageKey || !draftReady.current) return;
+    window.localStorage.setItem(draftStorageKey, JSON.stringify(value));
+  }, [draftStorageKey, value]);
   const preview = media.find((item) => item.kind === "image")?.url ?? null;
   const selectedCollections = useMemo(() => new Set(value.collectionIds), [value.collectionIds]);
   const currentCosting = value.costing ?? {
@@ -83,6 +101,7 @@ export function ProductForm({
     setErrors(result.errors);
     if (!result.valid) return;
     await onSave(value, intent);
+    if (draftStorageKey) window.localStorage.removeItem(draftStorageKey);
   };
 
   return (

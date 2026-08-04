@@ -16,6 +16,7 @@ import { validateSellerCoupon } from "@/services/sellerGrowthService";
 import type { CustomerCart, ShippingAddress } from "@/types/phase6-commerce";
 import type { CheckoutPaymentSettings } from "@/types/payment-settings";
 import type { AppliedSellerCoupon } from "@/types/phase11-seller-growth";
+import { subscribeGatewayPaymentStatus, type GatewayPaymentStatus } from "@/services/orderConfirmationService";
 import { UpiPaymentQr } from "@/components/payments/UpiPaymentQr";
 import { defaultLogisticsSettings, getLogisticsSettings } from "@/services/businessConfigurationService";
 import type { ShippingCostAllocation } from "@/types/logistics";
@@ -66,6 +67,7 @@ export function CheckoutFlow({
   const [policiesAccepted, setPoliciesAccepted] = useState(false);
   const [shippingAllocation, setShippingAllocation] = useState<ShippingCostAllocation>(defaultLogisticsSettings.shippingCostAllocation);
   const [manualStatus, setManualStatus] = useState<ManualPaymentRecord | null>(null);
+  const [gatewayStatus, setGatewayStatus] = useState<GatewayPaymentStatus | null>(null);
   const storageKey = `sidra-checkout-${userId}`;
   const draft = useMemo(
     () => ({
@@ -109,6 +111,7 @@ export function CheckoutFlow({
   }, [step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted, storageKey]);
 
   useEffect(() => checkoutReference && confirmationMode === "manual" ? subscribeManualPaymentRequest(checkoutReference, setManualStatus) : undefined, [checkoutReference, confirmationMode]);
+  useEffect(() => checkoutReference && confirmationMode === "gateway" ? subscribeGatewayPaymentStatus(checkoutReference, setGatewayStatus) : undefined, [checkoutReference, confirmationMode]);
 
   const refreshCart = async () => setCart(await getCart(userId));
   const changeQuantity = async (productId: string, variantId: string | null, quantity: number) => {
@@ -537,21 +540,14 @@ export function CheckoutFlow({
           <p className="mt-3 leading-7 text-muted">
             {confirmationMode === "manual"
               ? manualStatus?.status === "verified" ? "Payment verified. Your order is confirmed and visible in your account." : manualStatus?.status === "rejected" ? "Payment verification was rejected. Open Payment status or Support before paying again." : "Your payment is pending admin verification. You can close this page and return later; this status is saved in your account."
-              : "We are waiting for the verified server webhook before showing an order confirmation."}
+              : gatewayStatus?.status === "processed" ? "Payment verified. Your seller order is confirmed and saved in your account." : "We are waiting for the signed Razorpay webhook. You can close this page and return through your account."}
           </p>
           {checkoutReference ? (
             <p className="mt-5 rounded-[var(--radius-md)] border border-border p-4 text-sm">
               Reference: <strong>{checkoutReference}</strong>
             </p>
           ) : null}
-          {confirmationMode === "gateway" && checkoutReference ? (
-            <a
-              className="mt-6 inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3"
-              href={`/order/${checkoutReference}/confirmation`}
-            >
-              Check verified order status
-            </a>
-          ) : null}
+          {confirmationMode === "gateway" && checkoutReference ? <div className="mt-6 flex flex-wrap gap-3">{gatewayStatus?.orderIds.map((orderId) => <a key={orderId} className="inline-flex rounded-[var(--radius-md)] bg-[var(--color-deep-plum)] px-5 py-3 text-white" href={`/account/orders/${orderId}`}>Open confirmed order</a>)}<a className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3" href={`/order/${checkoutReference}/confirmation`}>Check verified payment</a></div> : null}
           {confirmationMode === "manual" ? <div className="mt-6 flex flex-wrap gap-3">{manualStatus?.orderIds.map((orderId) => <a key={orderId} className="inline-flex rounded-[var(--radius-md)] bg-[var(--color-deep-plum)] px-5 py-3 text-white" href={`/account/orders/${orderId}`}>Open confirmed order</a>)}<a className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3" href="/account/payments">View payment status</a></div> : null}
         </div>
       ) : null}

@@ -10,7 +10,7 @@ import {
   setDoc,
   where,
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type {
   CustomOrder,
@@ -446,25 +446,11 @@ export async function sendCustomOrderMessage(
 export async function submitCustomOrderProof(
   input: SubmitCustomOrderProofInput,
 ): Promise<void> {
-  const callable = httpsCallable<
-    SubmitCustomOrderProofInput,
-    { accepted: true }
-  >(
-    requireFirebaseServices().functions,
-    "submitCustomOrderProof",
-  );
-  await callable(input);
+  await callVercelBackend("submitCustomOrderProof", input);
 }
 
 export async function reviewCustomOrderProof(
   input: ReviewCustomOrderProofInput,
 ): Promise<void> {
-  const callable = httpsCallable<
-    ReviewCustomOrderProofInput,
-    { accepted: true }
-  >(
-    requireFirebaseServices().functions,
-    "reviewCustomOrderProof",
-  );
-  await callable(input);
+  await callVercelBackend("reviewCustomOrderProof", input);
 }

@@ -12,7 +12,7 @@ import {
   where,
   type DocumentData,
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { CartLineItem } from "@/types/phase6-commerce";
 import type {
@@ -28,14 +28,7 @@ import type {
 export async function getSellerAnalyticsSummary(
   studioId: string,
 ): Promise<SellerAnalyticsSummary> {
-  const call = httpsCallable<
-    { studioId: string },
-    SellerAnalyticsSummary
-  >(
-    requireFirebaseServices().functions,
-    "getSellerAnalyticsSummary",
-  );
-  return (await call({ studioId })).data;
+  return callVercelBackend("getSellerAnalyticsSummary", { studioId });
 }
 
 function currentUserId(): string {

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/backend/[action]/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/payments/razorpay/webhook/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/logistics/delhivery/shipment/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

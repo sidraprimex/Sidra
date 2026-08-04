@@ -1,5 +1,5 @@
 import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { callVercelBackend } from "@/services/vercelBackendService";
 import { getFirebaseServices } from "@/lib/firebaseClient";
 import type { DiscoveryStudio, HandwritingRecognitionResult, HandwritingStroke } from "@/types/discovery";
 
@@ -16,7 +16,5 @@ export async function listApprovedStudios(maximum = 30): Promise<DiscoveryStudio
 export async function recognizeSellerHandwriting(strokes: HandwritingStroke[], width: number, height: number): Promise<HandwritingRecognitionResult> {
   const services = getFirebaseServices();
   if (!services) throw new Error("SIDRA is not connected to Firebase.");
-  const callable = httpsCallable<{ strokes: HandwritingStroke[]; width: number; height: number }, HandwritingRecognitionResult>(services.functions, "recognizeSellerHandwriting");
-  const result = await callable({ strokes, width, height });
-  return result.data;
+  return callVercelBackend("recognizeSellerHandwriting", { strokes, width, height });
 }

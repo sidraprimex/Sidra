@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { calculateDelhiveryRate, createDelhiveryPickup, createDelhiveryShipment, ensureDelhiveryWarehouse } from "@/lib/server/delhivery";
-import { firebaseBearerToken, verifyFirebaseRequest } from "@/lib/server/firebaseIdentity";
-import { getFirestoreDocumentWithUserToken } from "@/lib/server/firestoreRest";
+import { requireServerIdentity, sidraAdminDb } from "@/lib/server/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,14 +18,16 @@ function positive(value: unknown): number {
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const identity = await verifyFirebaseRequest(request);
-    const token = firebaseBearerToken(request);
+    const identity = await requireServerIdentity(request);
+    const db = sidraAdminDb();
     const input = await request.json() as Record<string, unknown>;
     const orderId = text(input.orderId).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 180);
     if (!orderId) return NextResponse.json({ error: "Order is required." }, { status: 400 });
-    const order = await getFirestoreDocumentWithUserToken(token, `orders/${orderId}`);
-    if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
-    if (text(order.sellerUid) !== identity.uid) {
+    const orderRef = db.collection("orders").doc(orderId);
+    const orderSnapshot = await orderRef.get();
+    const order = orderSnapshot.data();
+    if (!orderSnapshot.exists || !order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    if (text(order.sellerUid) !== identity.uid || identity.role !== "seller") {
       return NextResponse.json({ error: "Only this order's Studio can prepare shipment." }, { status: 403 });
     }
     if (text(order.paymentStatus) !== "paid") {
@@ -43,14 +45,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const studioId = text(order.studioId);
-    const studio = studioId
-      ? await getFirestoreDocumentWithUserToken(token, `studios/${encodeURIComponent(studioId)}`)
-      : null;
-    const verification = studioId
-      ? await getFirestoreDocumentWithUserToken(token, `sellerVerifications/${encodeURIComponent(studioId)}`)
-      : null;
-    const logistics = await getFirestoreDocumentWithUserToken(token, "settings/logistics");
-    const kycSettings = await getFirestoreDocumentWithUserToken(token, "settings/sellerKyc");
+    const [studioSnapshot, verificationSnapshot, logisticsSnapshot, kycSnapshot] = await Promise.all([
+      studioId ? db.collection("studios").doc(studioId).get() : null,
+      studioId ? db.collection("sellerVerifications").doc(studioId).get() : null,
+      db.collection("settings").doc("logistics").get(),
+      db.collection("settings").doc("sellerKyc").get(),
+    ]);
+    const studio = studioSnapshot?.data() ?? null;
+    const verification = verificationSnapshot?.data() ?? null;
+    const logistics = logisticsSnapshot.data() ?? null;
+    const kycSettings = kycSnapshot.data() ?? null;
     if (kycSettings?.enabled !== false && verification?.status !== "verified") {
       return NextResponse.json({ error: "Studio KYC and pickup address must be verified before shipping." }, { status: 409 });
     }
@@ -126,13 +130,45 @@ export async function POST(request: Request): Promise<NextResponse> {
     } catch (caught) {
       pickupWarning = caught instanceof Error ? caught.message : "Pickup request must be scheduled manually.";
     }
+    const costAllocation = text(logistics?.shippingCostAllocation) || "includedInPrice";
+    const shippingPackage = {
+      weightGrams, lengthCm, widthCm, heightCm, courierName: "Delhivery",
+      trackingNumber: shipment.awb, estimatedDeliveryDate: "", dispatchedAt: null,
+      provider: "delhivery", awb: shipment.awb, pickupRequestId, pickupLocation,
+      labelAvailable: true, status: pickupRequestId ? "Ready for pickup" : "Ready to ship",
+      statusType: "readyToShip", lastLocation: null, events: [], shippingChargePaise,
+      costAllocation,
+    };
+    const batch = db.batch();
+    batch.update(orderRef, {
+      orderStatus: "readyToShip",
+      shippingPackage,
+      timeline: FieldValue.arrayUnion({
+        id: crypto.randomUUID(), status: "readyToShip", label: "Delhivery shipment created · label ready",
+        actorId: identity.uid, actorRole: "seller", reason: pickupWarning, createdAt: new Date().toISOString(), customerVisible: true,
+      }),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    batch.set(db.collection("shippingLedgers").doc(orderId), {
+      orderId, studioId, provider: "delhivery", awb: shipment.awb,
+      actualChargePaise: shippingChargePaise, allocation: costAllocation,
+      sellerOutOfPocketPaise: 0, status: shippingChargePaise == null ? "awaitingProviderInvoice" : "estimated",
+      updatedAt: FieldValue.serverTimestamp(), createdAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    if (order.customerId) batch.create(db.collection("notifications").doc(), {
+      recipientUid: order.customerId, type: "orderStatusUpdated", title: `Order ${text(order.orderNumber) || orderId} is ready to ship`,
+      body: `Delhivery AWB ${shipment.awb} has been created.`, actionUrl: `/account/orders/${orderId}`,
+      read: false, orderId, createdAt: FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
     return NextResponse.json({
       awb: shipment.awb,
       pickupRequestId,
       pickupLocation,
       pickupWarning,
       shippingChargePaise,
-      costAllocation: text(logistics?.shippingCostAllocation) || "buyerPaid",
+      costAllocation,
+      shippingPackage,
       existing: false,
     });
   } catch (caught) {

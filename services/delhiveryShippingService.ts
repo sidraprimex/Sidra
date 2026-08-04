@@ -1,4 +1,3 @@
-import { arrayUnion, doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { ShipmentEvent } from "@/types/logistics";
 import type { FulfilmentOrder, ShippingPackage } from "@/types/phase7-orders";
@@ -30,56 +29,7 @@ export async function prepareDelhiveryShipment(params: {
     body: JSON.stringify({ orderId: params.order.orderId, package: params.package }),
   });
   const payload = await responseJson(response);
-  const awb = String(payload.awb ?? "");
-  const value: ShippingPackage = {
-    ...params.package,
-    courierName: "Delhivery",
-    trackingNumber: awb,
-    estimatedDeliveryDate: "",
-    dispatchedAt: null,
-    provider: "delhivery",
-    awb,
-    pickupRequestId: typeof payload.pickupRequestId === "string" ? payload.pickupRequestId : null,
-    pickupLocation: String(payload.pickupLocation ?? ""),
-    labelAvailable: true,
-    status: payload.pickupRequestId ? "Ready for pickup" : "Ready to ship",
-    statusType: "readyToShip",
-    lastLocation: null,
-    events: [],
-    shippingChargePaise: typeof payload.shippingChargePaise === "number" ? payload.shippingChargePaise : null,
-    costAllocation: String(payload.costAllocation ?? "buyerPaid") as import("@/types/logistics").ShippingCostAllocation,
-  };
-  const { db, auth } = requireFirebaseServices();
-  const batch = writeBatch(db);
-  batch.update(doc(db, "orders", params.order.orderId), {
-    orderStatus: "readyToShip",
-    shippingPackage: value,
-    timeline: arrayUnion({
-      id: crypto.randomUUID(),
-      status: "readyToShip",
-      label: "Delhivery shipment created · label ready",
-      actorId: auth.currentUser?.uid ?? "",
-      actorRole: "seller",
-      reason: typeof payload.pickupWarning === "string" ? payload.pickupWarning : null,
-      createdAt: new Date().toISOString(),
-      customerVisible: true,
-    }),
-    updatedAt: serverTimestamp(),
-  });
-  batch.set(doc(db, "shippingLedgers", params.order.orderId), {
-    orderId: params.order.orderId,
-    studioId: params.order.studioId,
-    provider: "delhivery",
-    awb,
-    actualChargePaise: value.shippingChargePaise,
-    allocation: value.costAllocation,
-    sellerOutOfPocketPaise: 0,
-    status: value.shippingChargePaise == null ? "awaitingProviderInvoice" : "estimated",
-    updatedAt: serverTimestamp(),
-    createdAt: serverTimestamp(),
-  }, { merge: true });
-  await batch.commit();
-  return value;
+  return payload.shippingPackage as unknown as ShippingPackage;
 }
 
 export async function refreshDelhiveryTracking(orderId: string): Promise<{

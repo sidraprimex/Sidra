@@ -48,6 +48,7 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
   const [commerce, setCommerce] = useState<SellerCommerceSettings>({ ...defaultSellerCommerceSettings, plans: defaultSellerCommerceSettings.plans.map((plan) => ({ ...plan, benefits: [...plan.benefits] })) });
   const [logistics, setLogistics] = useState<LogisticsSettings>({ ...defaultLogisticsSettings });
   const [kyc, setKyc] = useState<SellerKycSettings>({ ...defaultSellerKycSettings });
+  const [draftReady, setDraftReady] = useState(false);
 
   useEffect(() => {
     void Promise.all([
@@ -71,8 +72,23 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
       if (commerceDoc) setCommerce((current) => ({ ...current, ...(toEditableRecord(commerceDoc.data) as Partial<SellerCommerceSettings>) }));
       if (logisticsDoc) setLogistics((current) => ({ ...current, ...(toEditableRecord(logisticsDoc.data) as Partial<LogisticsSettings>) }));
       if (kycDoc) setKyc((current) => ({ ...current, ...(toEditableRecord(kycDoc.data) as Partial<SellerKycSettings>) }));
-    }).catch((caught: unknown) => setMessage(caught instanceof Error ? caught.message : "CMS settings could not be loaded."));
-  }, []);
+      try {
+        const stored = JSON.parse(window.localStorage.getItem(`sidra-admin-cms-draft-${actorUid}`) ?? "null") as { cmsDocumentId?: string; cmsBlocks?: CmsBlock[] } | null;
+        if (stored?.cmsDocumentId) setCmsDocumentId(stored.cmsDocumentId);
+        if (Array.isArray(stored?.cmsBlocks)) {
+          setCmsBlocks(stored.cmsBlocks);
+          setMessage("Unsaved CMS draft restored on this device.");
+        }
+      } catch {
+        window.localStorage.removeItem(`sidra-admin-cms-draft-${actorUid}`);
+      }
+    }).catch((caught: unknown) => setMessage(caught instanceof Error ? caught.message : "CMS settings could not be loaded.")).finally(() => setDraftReady(true));
+  }, [actorUid]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    window.localStorage.setItem(`sidra-admin-cms-draft-${actorUid}`, JSON.stringify({ cmsDocumentId, cmsBlocks }));
+  }, [actorUid, cmsBlocks, cmsDocumentId, draftReady]);
 
   const saveTheme = async () => {
     setBusy(true); setMessage(null);
@@ -122,6 +138,7 @@ export function AdminCmsWorkspace({ actorUid, tab }: { readonly actorUid: string
       await setAdminDocument({ collectionName: "cms", documentId: cmsDocumentId, value: { blocks: cmsBlocks.map((block, index) => ({ ...block, order: index + 1 })), previousBlocks: currentBlocks, version: Number(currentValue.version ?? 0) + 1, published: true }, actorUid, action: "cms.publish", summary: `Published CMS document ${cmsDocumentId}` });
       setCmsPreviousBlocks(currentBlocks);
       setCmsVersion(Number(currentValue.version ?? 0) + 1);
+      window.localStorage.removeItem(`sidra-admin-cms-draft-${actorUid}`);
       setMessage(`CMS document “${cmsDocumentId}” published.`);
     } catch (caught) { setMessage(caught instanceof Error ? caught.message : "CMS document could not be saved."); }
     finally { setBusy(false); }
