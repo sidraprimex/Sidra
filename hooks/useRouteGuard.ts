@@ -40,11 +40,13 @@ export function useRouteGuard({
       router.replace("/not-authorized");
       return;
     }
-    if (allowedRoles && !roleIsAllowed(auth.claims?.role, allowedRoles)) {
+    const effectiveRole = auth.claims?.role ?? auth.profile?.role;
+    const effectiveStudioId = auth.claims?.studioId ?? auth.profile?.studioId;
+    if (allowedRoles && !roleIsAllowed(effectiveRole, allowedRoles)) {
       router.replace("/not-authorized");
       return;
     }
-    if (requireStudioId && !auth.claims?.studioId) {
+    if (requireStudioId && !effectiveStudioId) {
       router.replace("/not-authorized");
     }
   }, [allowedRoles, auth.claims, auth.loading, auth.profile, auth.user, pathname, requireStudioId, requireVerifiedEmail, router]);

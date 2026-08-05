@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { subscribeOrderConfirmation } from "@/services/orderConfirmationService";
+import { subscribePaymentConfirmation } from "@/services/orderConfirmationService";
 import type { OrderConfirmation } from "@/types/phase6-commerce";
 import { formatInr } from "@/utils/cartTotals";
 
@@ -10,7 +10,7 @@ export function OrderConfirmationClient({ orderId }: { readonly orderId: string 
   const [order, setOrder] = useState<OrderConfirmation | null>(null);
   const [error, setError] = useState("");
   useEffect(
-    () => subscribeOrderConfirmation(
+    () => subscribePaymentConfirmation(
       orderId,
       (value) => {
         setOrder(value);

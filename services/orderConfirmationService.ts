@@ -8,32 +8,39 @@ export async function getOrderConfirmation(orderId: string): Promise<OrderConfir
 }
 
 export function subscribeOrderConfirmation(
-  orderIdOrPaymentReference: string,
+  orderId: string,
+  listener: (order: OrderConfirmation | null) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  return onSnapshot(
+    doc(phase4Firestore(), "orders", orderId),
+    (snapshot) => listener(snapshot.exists() ? ({ orderId: snapshot.id, ...snapshot.data() } as OrderConfirmation) : null),
+    (caught) => onError?.(caught),
+  );
+}
+
+export function subscribePaymentConfirmation(
+  checkoutReference: string,
   listener: (order: OrderConfirmation | null) => void,
   onError?: (error: Error) => void,
 ): () => void {
   let orderSubscription: Unsubscribe | null = null;
-  const subscribeOrder = (orderId: string): void => {
-    orderSubscription?.();
-    orderSubscription = onSnapshot(
-      doc(phase4Firestore(), "orders", orderId),
-      (snapshot) => listener(snapshot.exists() ? ({ orderId: snapshot.id, ...snapshot.data() } as OrderConfirmation) : null),
-      (caught) => onError?.(caught),
-    );
-  };
   const sessionSubscription = onSnapshot(
-    doc(phase4Firestore(), "paymentSessions", orderIdOrPaymentReference),
+    doc(phase4Firestore(), "paymentSessions", checkoutReference),
     (session) => {
       if (session.exists()) {
-        const orderId = typeof session.data().orderId === "string" ? session.data().orderId : "";
+        const orderIds = Array.isArray(session.data().orderIds) ? session.data().orderIds : [];
+        const orderId = typeof orderIds[0] === "string" ? orderIds[0] : typeof session.data().orderId === "string" ? session.data().orderId : "";
         if (orderId) subscribeOrder(orderId);
         else listener(null);
-      } else {
-        subscribeOrder(orderIdOrPaymentReference);
-      }
+      } else listener(null);
     },
     (caught) => onError?.(caught),
   );
+  function subscribeOrder(orderId: string): void {
+    orderSubscription?.();
+    orderSubscription = subscribeOrderConfirmation(orderId, listener, onError);
+  }
   return () => { sessionSubscription(); orderSubscription?.(); };
 }
 

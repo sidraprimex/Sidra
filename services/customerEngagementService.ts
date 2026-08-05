@@ -7,6 +7,8 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
+  serverTimestamp,
   where,
 } from "firebase/firestore";
 import { callVercelBackend } from "@/services/vercelBackendService";
@@ -52,7 +54,32 @@ export async function toggleWishlistProduct(input: {
   studioName: string;
   pricePaise: number;
 }): Promise<{ active: boolean }> {
-  return callVercelBackend("toggleWishlistProduct", input);
+  const { auth, db } = requireFirebaseServices();
+  const customer = auth.currentUser;
+  if (!customer) throw new Error("Sign in again to continue.");
+  if (!customer.emailVerified) throw new Error("Verify your email before saving products.");
+
+  const itemRef = doc(db, "wishlists", customer.uid, "items", input.productId);
+  return runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(itemRef);
+    if (snapshot.exists()) {
+      transaction.delete(itemRef);
+      return { active: false };
+    }
+
+    transaction.set(itemRef, {
+      customerId: customer.uid,
+      productId: input.productId,
+      productSlug: input.productSlug,
+      productName: input.productName,
+      imageUrl: input.imageUrl,
+      studioId: input.studioId,
+      studioName: input.studioName,
+      pricePaise: input.pricePaise,
+      createdAt: serverTimestamp(),
+    });
+    return { active: true };
+  });
 }
 
 export async function toggleStudioFollow(studioId: string): Promise<{ active: boolean }> {

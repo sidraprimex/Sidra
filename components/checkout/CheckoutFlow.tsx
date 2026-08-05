@@ -20,6 +20,11 @@ import { subscribeGatewayPaymentStatus, type GatewayPaymentStatus } from "@/serv
 import { UpiPaymentQr } from "@/components/payments/UpiPaymentQr";
 import { defaultLogisticsSettings, getLogisticsSettings } from "@/services/businessConfigurationService";
 import type { ShippingCostAllocation } from "@/types/logistics";
+import {
+  canRestoreCheckoutState,
+  checkoutCartFingerprint,
+  type StoredCheckoutState,
+} from "@/utils/checkoutContinuity";
 
 declare global {
   interface Window {
@@ -68,7 +73,12 @@ export function CheckoutFlow({
   const [shippingAllocation, setShippingAllocation] = useState<ShippingCostAllocation>(defaultLogisticsSettings.shippingCostAllocation);
   const [manualStatus, setManualStatus] = useState<ManualPaymentRecord | null>(null);
   const [gatewayStatus, setGatewayStatus] = useState<GatewayPaymentStatus | null>(null);
+  const [checkoutReady, setCheckoutReady] = useState(false);
   const storageKey = `sidra-checkout-${userId}`;
+  const cartFingerprint = useMemo(
+    () => checkoutCartFingerprint(cart.items),
+    [cart.items],
+  );
   const draft = useMemo(
     () => ({
       ...calculateCheckoutDraft(cart.items, appliedCoupon, shippingAllocation),
@@ -78,37 +88,55 @@ export function CheckoutFlow({
   );
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? "null") as { step?: number; addressId?: string | null; checkoutReference?: string | null; confirmationMode?: "gateway" | "manual" | null; manualReference?: string; policiesAccepted?: boolean } | null;
-      if (stored) {
-        setStep(Math.max(0, Math.min(3, Number(stored.step ?? 0))));
-        setAddressId(stored.addressId ?? null);
-        setCheckoutReference(stored.checkoutReference ?? null);
-        setConfirmationMode(stored.confirmationMode ?? null);
-        setManualReference(stored.manualReference ?? "");
-        setPoliciesAccepted(stored.policiesAccepted === true);
-      }
-    } catch { window.localStorage.removeItem(storageKey); }
-
     void Promise.all([
       getCart(userId),
       listAddresses(userId),
       getCheckoutPaymentSettings(),
       getLogisticsSettings(),
     ]).then(([nextCart, nextAddresses, settings, logistics]) => {
+      const nextFingerprint = checkoutCartFingerprint(nextCart.items);
+      let stored: StoredCheckoutState | null = null;
+      try {
+        stored = JSON.parse(
+          window.localStorage.getItem(storageKey) ?? "null",
+        ) as StoredCheckoutState | null;
+      } catch {
+        window.localStorage.removeItem(storageKey);
+      }
+
       setCart(nextCart);
       setAppliedCoupon(null);
       setCouponMessage(null);
       setAddresses(nextAddresses);
       setPaymentSettings(settings);
       setShippingAllocation(logistics.shippingCostAllocation);
-      setAddressId((current) => current && nextAddresses.some((item) => item.id === current) ? current : nextAddresses.find((item) => item.isDefault)?.id ?? nextAddresses[0]?.id ?? null);
+      const fallbackAddress = nextAddresses.find((item) => item.isDefault)?.id ?? nextAddresses[0]?.id ?? null;
+      if (canRestoreCheckoutState(stored, nextFingerprint)) {
+        setStep(Math.max(0, Math.min(3, Number(stored.step ?? 0))));
+        setAddressId(stored.addressId && nextAddresses.some((item) => item.id === stored.addressId) ? stored.addressId : fallbackAddress);
+        setCheckoutReference(stored.checkoutReference ?? null);
+        setConfirmationMode(stored.confirmationMode ?? null);
+        setManualReference(stored.manualReference ?? "");
+        setPoliciesAccepted(stored.policiesAccepted === true);
+      } else {
+        window.localStorage.removeItem(storageKey);
+        setStep(0);
+        setAddressId(fallbackAddress);
+        setCheckoutReference(null);
+        setConfirmationMode(null);
+        setManualReference("");
+        setPoliciesAccepted(false);
+        setManualStatus(null);
+        setGatewayStatus(null);
+      }
+      setCheckoutReady(true);
     });
   }, [userId, storageKey]);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify({ step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted }));
-  }, [step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted, storageKey]);
+    if (!checkoutReady || !cartFingerprint) return;
+    window.localStorage.setItem(storageKey, JSON.stringify({ step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted, cartFingerprint }));
+  }, [step, addressId, checkoutReference, confirmationMode, manualReference, policiesAccepted, storageKey, checkoutReady, cartFingerprint]);
 
   useEffect(() => checkoutReference && confirmationMode === "manual" ? subscribeManualPaymentRequest(checkoutReference, setManualStatus) : undefined, [checkoutReference, confirmationMode]);
   useEffect(() => checkoutReference && confirmationMode === "gateway" ? subscribeGatewayPaymentStatus(checkoutReference, setGatewayStatus) : undefined, [checkoutReference, confirmationMode]);
@@ -121,6 +149,18 @@ export function CheckoutFlow({
   const removeItem = async (productId: string, variantId: string | null) => {
     await removeCartItem(userId, productId, variantId);
     await refreshCart();
+  };
+
+  const startAnotherOrder = (): void => {
+    window.localStorage.removeItem(storageKey);
+    setStep(0);
+    setCheckoutReference(null);
+    setConfirmationMode(null);
+    setManualReference("");
+    setPoliciesAccepted(false);
+    setManualStatus(null);
+    setGatewayStatus(null);
+    setError(null);
   };
 
   const applyCoupon = async (): Promise<void> => {
@@ -548,7 +588,7 @@ export function CheckoutFlow({
             </p>
           ) : null}
           {confirmationMode === "gateway" && checkoutReference ? <div className="mt-6 flex flex-wrap gap-3">{gatewayStatus?.orderIds.map((orderId) => <a key={orderId} className="inline-flex rounded-[var(--radius-md)] bg-[var(--color-deep-plum)] px-5 py-3 text-white" href={`/account/orders/${orderId}`}>Open confirmed order</a>)}<a className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3" href={`/order/${checkoutReference}/confirmation`}>Check verified payment</a></div> : null}
-          {confirmationMode === "manual" ? <div className="mt-6 flex flex-wrap gap-3">{manualStatus?.orderIds.map((orderId) => <a key={orderId} className="inline-flex rounded-[var(--radius-md)] bg-[var(--color-deep-plum)] px-5 py-3 text-white" href={`/account/orders/${orderId}`}>Open confirmed order</a>)}<a className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3" href="/account/payments">View payment status</a></div> : null}
+          {confirmationMode === "manual" ? <div className="mt-6 flex flex-wrap gap-3">{manualStatus?.status === "verified" ? manualStatus.orderIds.map((orderId) => <a key={orderId} className="inline-flex rounded-[var(--radius-md)] bg-[var(--color-deep-plum)] px-5 py-3 text-white" href={`/account/orders/${orderId}`}>Open confirmed order</a>) : null}<a className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3" href="/account/payments">View payment status</a><button type="button" onClick={startAnotherOrder} className="inline-flex rounded-[var(--radius-md)] border border-border px-5 py-3">Start another order</button></div> : null}
         </div>
       ) : null}
     </section>
