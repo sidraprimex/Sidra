@@ -210,6 +210,8 @@ export function CustomerProfileClient(): React.JSX.Element {
           <div className="flex items-center gap-4">
             <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-deep-plum)] text-2xl font-semibold text-white">
               {photo ? (
+                // User-provided profile URLs are intentionally rendered without Next image proxying.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={photo}
                   alt="Profile"

@@ -39,6 +39,34 @@ const ORDER_TRANSITIONS: Record<string, readonly string[]> = {
   cancelled: [],
   returned: [],
 };
+const ADMIN_SNAPSHOT_COLLECTIONS = {
+  users: "users",
+  studios: "studios",
+  products: "products",
+  orders: "orders",
+  customOrders: "customOrders",
+  supportTickets: "supportTickets",
+  sellerApplications: "sellerApplications",
+  manualPaymentRequests: "manualPaymentRequests",
+  sellerSubscriptionRequests: "sellerSubscriptionRequests",
+  payouts: "payouts",
+  sellerWithdrawals: "sellerWithdrawals",
+  sellerVerifications: "sellerVerifications",
+  auditLogs: "adminAuditLogs",
+} as const;
+const ADMIN_EDITABLE_COLLECTIONS = new Set([
+  ...Object.values(ADMIN_SNAPSHOT_COLLECTIONS),
+  "cms",
+  "settings",
+  "platformContent",
+  "platformSettings",
+  "messages",
+  "payments",
+  "categories",
+  "collections",
+  "notifications",
+  "reviews",
+]);
 
 function text(value: unknown, max = 2_000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -74,6 +102,45 @@ function renderSvg(strokes: unknown, width: unknown, height: unknown): string {
 }
 function normalized(value: string): string {
   return value.toLocaleLowerCase("en").replace(/[^a-z0-9]/g, "");
+}
+function adminCollection(value: unknown): string {
+  const collectionName = text(value, 80);
+  if (!ADMIN_EDITABLE_COLLECTIONS.has(collectionName)) {
+    throw new Error("ADMIN_COLLECTION_DENIED");
+  }
+  return collectionName;
+}
+function adminDocumentId(value: unknown): string {
+  const documentId = text(value, 180);
+  if (!documentId || documentId.includes("/")) {
+    throw new Error("ADMIN_DOCUMENT_INVALID");
+  }
+  return documentId;
+}
+function jsonSafe(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (value && typeof value === "object") {
+    const candidate = value as { toDate?: unknown };
+    if (typeof candidate.toDate === "function") {
+      return (candidate.toDate as () => Date)().toISOString();
+    }
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, jsonSafe(item)]),
+    );
+  }
+  return value;
+}
+function adminAuditRecord(identity: SidraServerIdentity, input: Input, entityType: string, entityId: string) {
+  return {
+    actorUid: identity.uid,
+    actorRole: identity.role,
+    action: text(input.action, 120) || "document.save",
+    entityType,
+    entityId,
+    summary: text(input.summary, 500) || `Saved ${entityType}/${entityId}`,
+    createdAt: FieldValue.serverTimestamp(),
+  };
 }
 
 async function createManualOrders(
@@ -266,12 +333,131 @@ export async function handleExtendedBackendAction(
   identity: SidraServerIdentity,
 ): Promise<Result> {
   const db = sidraAdminDb();
+  if (action === "loadAdminSnapshot") {
+    requireRole(identity, ["founder", "superAdmin"]);
+    const requested = Math.round(Number(input.maxResults ?? 250));
+    const maxResults = Math.max(1, Math.min(250, Number.isFinite(requested) ? requested : 250));
+    const entries = await Promise.all(
+      Object.entries(ADMIN_SNAPSHOT_COLLECTIONS).map(async ([key, collectionName]) => {
+        const snapshot = await db.collection(collectionName).limit(maxResults).get();
+        return [key, snapshot.docs.map((document) => ({ id: document.id, data: jsonSafe(document.data()) }))] as const;
+      }),
+    );
+    return { handled: true, data: Object.fromEntries(entries) };
+  }
+  if (action === "listAdminCollection") {
+    requireRole(identity, ["founder", "superAdmin"]);
+    const collectionName = adminCollection(input.collectionName);
+    const requested = Math.round(Number(input.maxResults ?? 250));
+    const maxResults = Math.max(1, Math.min(500, Number.isFinite(requested) ? requested : 250));
+    const snapshot = await db.collection(collectionName).limit(maxResults).get();
+    return {
+      handled: true,
+      data: snapshot.docs.map((document) => ({ id: document.id, data: jsonSafe(document.data()) })),
+    };
+  }
+  if (action === "getAdminDocument") {
+    requireRole(identity, ["founder", "superAdmin"]);
+    const collectionName = adminCollection(input.collectionName);
+    const documentId = adminDocumentId(input.documentId);
+    const snapshot = await db.collection(collectionName).doc(documentId).get();
+    return {
+      handled: true,
+      data: snapshot.exists ? { id: snapshot.id, data: jsonSafe(snapshot.data() ?? {}) } : null,
+    };
+  }
+  if (action === "updateAdminDocument" || action === "setAdminDocument") {
+    requireRole(identity, ["founder", "superAdmin"]);
+    const collectionName = adminCollection(input.collectionName);
+    const documentId = adminDocumentId(input.documentId);
+    const supplied = object(action === "updateAdminDocument" ? input.patch : input.value);
+    const clean = Object.fromEntries(
+      Object.entries(supplied).filter(([key]) => !["createdAt", "updatedAt", "updatedBy"].includes(key)),
+    );
+    if (Object.keys(clean).length === 0) throw new Error("ADMIN_DOCUMENT_EMPTY");
+    const documentRef = db.collection(collectionName).doc(documentId);
+    const auditRef = db.collection("adminAuditLogs").doc();
+    const batch = db.batch();
+    if (action === "updateAdminDocument") {
+      batch.update(documentRef, { ...clean, updatedAt: FieldValue.serverTimestamp(), updatedBy: identity.uid });
+    } else {
+      batch.set(documentRef, { ...clean, updatedAt: FieldValue.serverTimestamp(), updatedBy: identity.uid }, { merge: input.merge !== false });
+    }
+    batch.create(auditRef, adminAuditRecord(identity, input, collectionName, documentId));
+    await batch.commit();
+    return { handled: true, data: { accepted: true } };
+  }
+  if (action === "deleteAdminDocument") {
+    requireRole(identity, ["founder", "superAdmin"]);
+    const collectionName = adminCollection(input.collectionName);
+    const documentId = adminDocumentId(input.documentId);
+    const documentRef = db.collection(collectionName).doc(documentId);
+    const auditRef = db.collection("adminAuditLogs").doc();
+    const batch = db.batch();
+    batch.delete(documentRef);
+    batch.create(auditRef, adminAuditRecord(identity, input, collectionName, documentId));
+    await batch.commit();
+    return { handled: true, data: { accepted: true } };
+  }
+  if (action === "markOrderDeliveredAndSettle") {
+    requireRole(identity, ["founder", "superAdmin"]);
+    const orderId = adminDocumentId(input.orderId);
+    const orderRef = db.collection("orders").doc(orderId);
+    await db.runTransaction(async (transaction) => {
+      const [orderSnapshot, ledgerSnapshot, settingsSnapshot] = await Promise.all([
+        transaction.get(orderRef),
+        transaction.get(db.collection("shippingLedgers").doc(orderId)),
+        transaction.get(db.collection("settings").doc("sellerCommerce")),
+      ]);
+      if (!orderSnapshot.exists) throw new Error("ORDER_NOT_FOUND");
+      const order = orderSnapshot.data() ?? {};
+      const ledger = ledgerSnapshot.data() ?? {};
+      const actualShippingPaise = Math.max(0, Number(ledger.actualChargePaise ?? order.shippingPaise ?? 0));
+      const profitPaise = Math.max(0,
+        Number(order.subtotalPaise ?? 0) - Number(order.discountPaise ?? 0)
+        - Number(order.sellerMakingCostPaise ?? order.sellerCostPaise ?? 0) - actualShippingPaise,
+      );
+      const commissionBasisPoints = Math.max(0, Math.min(10_000, Number(order.commissionRateBasisPoints ?? 1200)));
+      const commissionPaise = Math.round(profitPaise * commissionBasisPoints / 10_000);
+      const disputeWindowDays = Math.max(0, Number(order.disputeWindowDays ?? settingsSnapshot.data()?.disputeWindowDays ?? 3));
+      const availableAfter = new Date(Date.now() + disputeWindowDays * 86_400_000).toISOString();
+      transaction.update(orderRef, {
+        orderStatus: "delivered",
+        status: "delivered",
+        profitPaise,
+        actualShippingPaise,
+        timeline: FieldValue.arrayUnion({
+          id: crypto.randomUUID(), status: "delivered", label: "Delivery verified by Sidra admin",
+          actorId: identity.uid, actorRole: identity.role, reason: null,
+          createdAt: new Date().toISOString(), customerVisible: true,
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      transaction.set(db.collection("payouts").doc(`profit-${orderId}`), {
+        payoutId: `profit-${orderId}`, orderId, studioId: order.studioId,
+        sellerUid: order.sellerUid ?? null, type: "profitSettlement", grossPaise: profitPaise,
+        commissionPaise, sellerAmountPaise: Math.max(0, profitPaise - commissionPaise),
+        commissionBasisPoints, subscriptionPlan: order.subscriptionPlan ?? "free",
+        actualShippingPaise, status: disputeWindowDays > 0 ? "pending" : "available",
+        availableAfter, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      transaction.create(db.collection("adminAuditLogs").doc(),
+        adminAuditRecord(identity, { action: "order.delivery.settle", summary: "Verified delivery and created post-dispute profit settlement" }, "orders", orderId),
+      );
+    });
+    return { handled: true, data: { accepted: true } };
+  }
   if (action === "createManualPaymentRequest") {
     if (!identity.emailVerified) throw new Error("EMAIL_VERIFICATION_REQUIRED");
     const checkout = await resolveServerCheckout(identity.uid, input.checkout);
     const paymentReference = text(input.paymentReference, 180);
     if (paymentReference.length < 4)
       throw new Error("PAYMENT_REFERENCE_INVALID");
+    const policies = object(input.acceptedPolicies);
+    const requiredPolicies = ["terms", "shipping", "cancellation", "damageClaims"];
+    if (requiredPolicies.some((key) => text(policies[key], 40).length < 4)) {
+      throw new Error("POLICY_ACCEPTANCE_REQUIRED");
+    }
     const ref = db.collection("manualPaymentRequests").doc();
     await ref.set({
       customerId: identity.uid,
@@ -285,7 +471,7 @@ export async function handleExtendedBackendAction(
       couponStudioId: checkout.couponStudioId,
       totalPaise: checkout.totalPaise,
       paymentReference,
-      acceptedPolicies: object(input.acceptedPolicies),
+      acceptedPolicies: Object.fromEntries(requiredPolicies.map((key) => [key, text(policies[key], 40)])),
       status: "pendingVerification",
       adminNote: null,
       verifiedBy: null,

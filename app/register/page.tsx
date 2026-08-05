@@ -10,10 +10,11 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { Button } from "@/components/ui/Button";
 import { registerWithEmail } from "@/services/authService";
 import { getAuthErrorMessage } from "@/utils/authErrors";
+import { safeInternalDestination } from "@/utils/safeNavigation";
 
 function RegisterContent() {
   const params = useSearchParams();
-  const destination = params.get("next") || "/account/dashboard";
+  const destination = safeInternalDestination(params.get("next"));
   const [values, setValues] = useState({ fullName: "", phone: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

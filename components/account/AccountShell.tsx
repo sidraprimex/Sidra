@@ -36,7 +36,11 @@ export function AccountShell({ title, eyebrow, children, mode="customer" }: Acco
           <div className="flex items-center gap-2">
             <Link href="/account/profile" className="hidden min-w-0 items-center gap-3 rounded-full border border-[rgba(59,30,53,.12)] bg-white py-1.5 pl-1.5 pr-4 sm:flex" aria-label="Open profile">
               <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-deep-plum)] text-sm font-semibold text-white">
-                {profilePhoto ? <img src={profilePhoto} alt="" className="h-full w-full object-cover" /> : displayName.slice(0,1).toUpperCase()}
+                {profilePhoto ? <>
+                  {/* User-provided profile URLs are intentionally rendered without Next image proxying. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={profilePhoto} alt="" className="h-full w-full object-cover" />
+                </> : displayName.slice(0,1).toUpperCase()}
               </span>
               <span className="max-w-36 truncate text-xs font-semibold">{displayName}</span>
             </Link>
@@ -51,7 +55,11 @@ export function AccountShell({ title, eyebrow, children, mode="customer" }: Acco
         <div className="flex items-center justify-between"><span className="font-display text-2xl tracking-[.22em] text-[var(--color-deep-plum)]">SIDRA</span><button onClick={()=>setOpen(false)} className="grid h-11 w-11 place-items-center rounded-full border border-black/10" aria-label="Close menu">✕</button></div>
         <Link href="/account/profile" onClick={()=>setOpen(false)} className="mt-7 flex items-center gap-3 rounded-2xl border border-black/8 bg-white/70 p-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-deep-plum)] font-semibold text-white">
-            {profilePhoto ? <img src={profilePhoto} alt="" className="h-full w-full object-cover" /> : displayName.slice(0,1).toUpperCase()}
+            {profilePhoto ? <>
+              {/* User-provided profile URLs are intentionally rendered without Next image proxying. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={profilePhoto} alt="" className="h-full w-full object-cover" />
+            </> : displayName.slice(0,1).toUpperCase()}
           </span>
           <span className="min-w-0"><strong className="block truncate text-sm">{displayName}</strong><span className="block truncate text-xs text-black/50">{user?.email}</span></span>
         </Link>

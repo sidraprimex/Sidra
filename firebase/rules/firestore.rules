@@ -33,7 +33,6 @@ service cloud.firestore {
     function ownUser(userId) { return signedIn() && uid() == userId; }
     function ownStudio(value) { return signedIn() && studioId() != null && studioId() == value; }
     function changedOnly(fields) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields); }
-    function createdOnly(fields) { return request.resource.data.keys().hasOnly(fields); }
     function validText(value, min, max) { return value is string && value.size() >= min && value.size() <= max; }
     function customOrderPath(orderId) { return /databases/$(database)/documents/customOrders/$(orderId); }
     function customOrderExists(orderId) { return exists(customOrderPath(orderId)); }
@@ -929,61 +928,8 @@ service cloud.firestore {
     }
 
     match /manualPaymentRequests/{requestId} {
-      allow create: if verified()
-        && request.resource.data.customerId == uid()
-        && validText(request.resource.data.addressId, 1, 180)
-        && request.resource.data.items is list
-        && request.resource.data.items.size() > 0
-        && request.resource.data.items.size() <= 100
-        && request.resource.data.subtotalPaise is int
-        && request.resource.data.subtotalPaise > 0
-        && request.resource.data.shippingPaise is int
-        && request.resource.data.shippingPaise >= 0
-        && request.resource.data.discountPaise is int
-        && request.resource.data.discountPaise >= 0
-        && request.resource.data.discountPaise <= request.resource.data.subtotalPaise
-        && request.resource.data.status == 'pendingVerification'
-        && validText(request.resource.data.paymentReference, 4, 180)
-        && request.resource.data.acceptedPolicies is map
-        && validText(request.resource.data.acceptedPolicies.terms, 4, 40)
-        && validText(request.resource.data.acceptedPolicies.shipping, 4, 40)
-        && validText(request.resource.data.acceptedPolicies.cancellation, 4, 40)
-        && validText(request.resource.data.acceptedPolicies.damageClaims, 4, 40)
-        && request.resource.data.totalPaise is int
-        && request.resource.data.totalPaise > 0
-        && request.resource.data.totalPaise
-          == request.resource.data.subtotalPaise
-            + request.resource.data.shippingPaise
-            - request.resource.data.discountPaise
-        && (
-          (
-            request.resource.data.couponId == null
-            && request.resource.data.couponCode == null
-            && request.resource.data.couponStudioId == null
-            && request.resource.data.discountPaise == 0
-          )
-          || (
-            validText(request.resource.data.couponId, 3, 24)
-            && validText(request.resource.data.couponCode, 3, 24)
-            && validText(request.resource.data.couponStudioId, 1, 180)
-            && exists(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId))
-            && get(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId)).data.active == true
-            && get(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId)).data.code == request.resource.data.couponCode
-            && get(/databases/$(database)/documents/sellerCoupons/$(request.resource.data.couponId)).data.studioId == request.resource.data.couponStudioId
-          )
-        )
-        && request.resource.data.adminNote == null
-        && request.resource.data.verifiedBy == null
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time
-        && request.resource.data.keys().hasOnly([
-          'customerId', 'addressId', 'items', 'subtotalPaise',
-          'shippingPaise', 'discountPaise', 'couponId',
-          'couponCode', 'couponStudioId', 'totalPaise',
-          'paymentReference', 'acceptedPolicies',
-          'status', 'adminNote', 'verifiedBy',
-          'createdAt', 'updatedAt'
-        ]);
+      // Trusted totals and policy acceptance are created only by the Vercel backend.
+      allow create: if false;
       allow read: if founder() || (signedIn() && resource.data.customerId == uid());
       allow update, delete: if founder();
     }

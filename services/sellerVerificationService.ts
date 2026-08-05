@@ -1,6 +1,7 @@
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { SellerVerification } from "@/types/logistics";
+import { readJsonResponse } from "@/services/httpResponse";
 
 export async function getSellerVerification(studioId: string): Promise<SellerVerification | null> {
   const { db } = requireFirebaseServices();
@@ -26,7 +27,10 @@ export async function uploadSellerKycDocument(params: {
     headers: { authorization: `Bearer ${token}` },
     body: form,
   });
-  const payload = await response.json() as { path?: string; error?: string };
+  const payload = await readJsonResponse<{ path?: string; error?: string }>(
+    response,
+    "Document upload service is temporarily unavailable.",
+  );
   if (!response.ok || !payload.path) throw new Error(payload.error ?? "Document upload failed.");
   return payload.path;
 }

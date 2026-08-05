@@ -33,7 +33,7 @@ export function WishlistHeartButton(props: WishlistHeartButtonProps): React.JSX.
     event.stopPropagation();
     if (busy) return;
     if (!auth.user) {
-      router.push(`/login?redirect=${encodeURIComponent(`/product/${props.productSlug}`)}`);
+      router.push(`/login?next=${encodeURIComponent(`/product/${props.productSlug}`)}`);
       return;
     }
     setBusy(true);

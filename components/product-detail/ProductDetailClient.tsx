@@ -43,7 +43,7 @@ export function ProductDetailClient({ product }: { readonly product: PublicProdu
 
     if (!auth.user) {
       router.push(
-        "/login?redirect=" +
+        "/login?next=" +
           encodeURIComponent("/product/" + product.slug),
       );
       return;
@@ -105,7 +105,7 @@ export function ProductDetailClient({ product }: { readonly product: PublicProdu
   };
 
   const toggleWishlist = async () => {
-    if (!auth.user) { router.push("/login?redirect=" + encodeURIComponent("/product/" + product.slug)); return; }
+    if (!auth.user) { router.push("/login?next=" + encodeURIComponent("/product/" + product.slug)); return; }
     setWishlistBusy(true);
     setMessage(null);
     try {

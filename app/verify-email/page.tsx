@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { refreshIdentity, resendVerificationEmail } from "@/services/authService";
 import { getAuthErrorMessage } from "@/utils/authErrors";
+import { safeInternalDestination } from "@/utils/safeNavigation";
 
 function VerifyEmailContent() {
   const auth = useAuth();
   const params = useSearchParams();
-  const destination = params.get("next") || "/account/dashboard";
+  const destination = safeInternalDestination(params.get("next"));
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

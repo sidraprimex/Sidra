@@ -11,6 +11,7 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { Button } from "@/components/ui/Button";
 import { loginWithEmail } from "@/services/authService";
 import { getAuthErrorMessage } from "@/utils/authErrors";
+import { safeInternalDestination } from "@/utils/safeNavigation";
 
 function withSignal(destination: string): string {
   return `${destination}${destination.includes("?") ? "&" : "?"}signedIn=1`;
@@ -18,7 +19,7 @@ function withSignal(destination: string): string {
 
 function LoginContent() {
   const params = useSearchParams();
-  const destination = params.get("next") || "/account/dashboard";
+  const destination = safeInternalDestination(params.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

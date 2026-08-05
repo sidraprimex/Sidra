@@ -1,6 +1,7 @@
 import { requireFirebaseServices } from "@/services/firebaseClient";
 import type { ShipmentEvent } from "@/types/logistics";
 import type { FulfilmentOrder, ShippingPackage } from "@/types/phase7-orders";
+import { readJsonResponse } from "@/services/httpResponse";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { auth } = requireFirebaseServices();
@@ -13,7 +14,10 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 async function responseJson(response: Response): Promise<Record<string, unknown>> {
-  const payload = await response.json() as Record<string, unknown>;
+  const payload = await readJsonResponse<Record<string, unknown>>(
+    response,
+    "Delhivery service is temporarily unavailable.",
+  );
   if (!response.ok) throw new Error(String(payload.error ?? "Delhivery request failed."));
   return payload;
 }
@@ -65,7 +69,10 @@ export async function openDelhiveryLabel(orderId: string): Promise<void> {
     cache: "no-store",
   });
   if (!response.ok) {
-    const payload = await response.json() as { error?: string };
+    const payload = await readJsonResponse<{ error?: string }>(
+      response,
+      "Shipping label service is temporarily unavailable.",
+    );
     throw new Error(payload.error ?? "Label is unavailable.");
   }
   const blob = await response.blob();

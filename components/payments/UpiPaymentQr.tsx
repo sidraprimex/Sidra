@@ -43,6 +43,8 @@ export function UpiPaymentQr({
 
   return (
     <div className="grid justify-items-center rounded-2xl border border-black/10 bg-white p-5 text-center">
+      {/* Generated data URLs should not pass through the Next image optimizer. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={image} alt={`UPI payment QR for ${upiId}`} className="h-56 w-56 rounded-xl" />
       <p className="mt-3 text-xs font-semibold uppercase tracking-[.16em] text-black/55">Scan with any UPI app</p>
       <p className="mt-2 break-all text-sm font-semibold">{upiId}</p>

@@ -11,7 +11,11 @@ export async function subscribeToNewsletter(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ email }),
   });
-  const result = await response.json() as NewsletterSubscriptionResult & { error?: string };
+  const result = await readJsonResponse<NewsletterSubscriptionResult & { error?: string }>(
+    response,
+    "Newsletter service is temporarily unavailable.",
+  );
   if (!response.ok) throw new Error(result.error ?? "Subscription failed.");
   return result;
 }
+import { readJsonResponse } from "@/services/httpResponse";

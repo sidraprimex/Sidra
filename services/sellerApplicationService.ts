@@ -283,13 +283,11 @@ export async function submitSellerApplication(
 
   try {
     onProgress?.("Application saved. Connecting secure portfolio storage…");
-    let persistedImages: SellerPortfolioImage[] = [];
     const portfolioImages = await uploadSellerPortfolio(
       uid,
       created.id,
       files,
       async (uploaded, completed, total) => {
-        persistedImages = uploaded;
         onProgress?.(`Securing portfolio image ${completed} of ${total}…`);
         await updateDoc(created, {
           portfolioImages: uploaded,
